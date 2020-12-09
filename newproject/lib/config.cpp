@@ -21,7 +21,7 @@ namespace rasp
     {
         filename = filename1;
         regex regComment("^ *#+");
-        regex regSection("\\[.+\\]");
+        regex regSection("^ *\\[.+\\]");
         smatch sm;
         ifstream file(filename, ios::in);
         if(!file)
