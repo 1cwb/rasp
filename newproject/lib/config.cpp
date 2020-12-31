@@ -17,7 +17,7 @@ namespace rasp
         return key;
     }
 
-    INT32 Config::parse(const string& filename1)
+    int32_t Config::parse(const string& filename1)
     {
         filename = filename1;
         regex regComment("^ *#+");
@@ -28,11 +28,11 @@ namespace rasp
         {
             return -1;
         }
-        static const INT32 MAX_LINE = 16 * 1024;
-        CHAR* ln = new CHAR[MAX_LINE];
-        unique_ptr<CHAR[]> release1(ln);
+        static const int32_t MAX_LINE = 16 * 1024;
+        char* ln = new char[MAX_LINE];
+        unique_ptr<char[]> release1(ln);
         string linestr;
-        INT32 lineno = 0;
+        int32_t lineno = 0;
         string section, name, valuestr;
         while(!file.eof())
         {
@@ -97,21 +97,21 @@ namespace rasp
         return p == values_.end() ? default_value : p->second;
     }
 
-    LONG Config::getInteger(string section, string name, LONG default_value)
+    long Config::getInteger(string section, string name, long default_value)
     {
         string valstr = get(section, name, "");
-        const CHAR* value = valstr.c_str();
-        CHAR* end;
-        LONG n = strtol(value, &end, 0);
+        const char* value = valstr.c_str();
+        char* end;
+        long n = strtol(value, &end, 0);
         return end > value ? n : default_value;
     }
 
-    DOUBLE Config::getReal(string section, string name, DOUBLE default_value)
+    double Config::getReal(string section, string name, double default_value)
     {
         string valstr = get(section, name, "");
-        const CHAR* value = valstr.c_str();
-        CHAR* end;
-        DOUBLE n = strtod(value, &end);
+        const char* value = valstr.c_str();
+        char* end;
+        double n = strtod(value, &end);
         return end > value ? n: default_value;
     }
 
@@ -135,7 +135,7 @@ namespace rasp
         return get(section, name, "");
     }
 
-    VOID Config::dump()
+    void Config::dump()
     {
         for(auto it : values_)
         {

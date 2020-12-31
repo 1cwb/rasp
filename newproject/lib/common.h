@@ -18,7 +18,7 @@
 #define DBG(fmt, ...) printf("" fmt "\n",##__VA_ARGS__)
 #endif
 
-
+/*
 #if __WORDSIZE == 64
 typedef long int            INT_PTR;
 typedef unsigned long       U_PTR;
@@ -44,3 +44,4 @@ typedef ULLONG              UINT64;
 typedef void                VOID;
 typedef double              DOUBLE;
 typedef float               FLOAT;
+*/
