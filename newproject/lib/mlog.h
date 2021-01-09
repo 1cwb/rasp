@@ -4,6 +4,7 @@
 #include <atomic>
 #include "util.h"
 
+
 #ifdef NDEBUG
 #define hlog(level, ...) \
     do { \
@@ -25,7 +26,7 @@
 
 #define trace(...) hlog(Logger::LTRACE, __VA_ARGS__)
 #define debug(...) hlog(Logger::LDEBUG, __VA_ARGS__)
-#define info(...)  hlog(Logge::LINFO, __VA_ARGS__)
+#define info(...)  hlog(Logger::LINFO, __VA_ARGS__)
 #define warn(...)  hlog(Logger::LWARN, __VA_ARGS__)
 #define error(...) hlog(Logger::LERROR, __VA_ARGS__)
 #define fatal(...) hlog(Logger::LFATAL, __VA_ARGS__)

@@ -11,8 +11,8 @@
 namespace rasp
 {
     const int kMaxEvents = 2000;
-    const int kReadEvent = POLLIN;
-    const int kWriteEvent = POLLOUT;
+    const int kReadEvent = EPOLLIN;
+    const int kWriteEvent = EPOLLOUT;
 
     struct PollerBase : private noncopyable
     {

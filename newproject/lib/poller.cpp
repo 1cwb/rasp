@@ -1,4 +1,6 @@
 #include "poller.h"
+#include "mlog.h"
+#include <unistd.h>
 #include <set>
 
 namespace rasp
@@ -7,9 +9,9 @@ namespace rasp
     {
         int fd_;
         std::set<Channel*>  liveChabbels_;
+        struct epoll_event activeEvs_[kMaxEvents]; 
         PollerEpoll();
         virtual ~PollerEpoll();
-        struct epoll_event activeEvs_[kMaxEvents]; 
         virtual void addChannel(Channel* ch) override;
         virtual void removeChannel(Channel* ch) override;
         virtual void updateChannel(Channel* ch) override;
@@ -33,21 +35,71 @@ namespace rasp
     }
     void PollerEpoll::addChannel(Channel* ch) 
     {
-
+        struct epoll_event ev;
+        memset(&ev, 0, sizeof(ev));
+        ev.events = ch->events();
+        ev.data.ptr = ch;
+        trace("adding channel %lld fd %d events %d epoll %d",(long long)ch->id(), ch->fd(), ev.events, fd_);
+        int r = epoll_ctl(fd_, EPOLL_CTL_ADD, ch->fd(), &ev);
+        fatalif(r, "epoll_ctl add failed %d %s",errno, strerror(errno));
+        liveChabbels_.insert(ch);
     }
     void PollerEpoll::removeChannel(Channel* ch) 
     {
-
+        trace("deleting channel %lld fd %d epoll %d", (long long)ch->id(), ch->fd(), fd_);
+        liveChabbels_.erase(ch);
+        for(int i = lastActive_; i >= 0; i --)
+        {
+            if(ch == activeEvs_[i].data.ptr)
+            {
+                activeEvs_[i].data.ptr = nullptr;
+                break;
+            }
+        }
     }
     void PollerEpoll::updateChannel(Channel* ch) 
     {
-
+        struct epoll_event ev;
+        memset(&ev, 0, sizeof(ev));
+        ev.events = ch->events();
+        ev.data.ptr = ch;
+        trace("modify channel %lld fd %d events read %d write %d epoll %d",
+            (long long)ch->id(), ch->fd(), ev.events & EPOLLIN, ev.events & EPOLLOUT, fd_);
+        int r = epoll_ctl(fd_, EPOLL_CTL_MOD, ch->fd(), &ev);
+        fatalif(r, "epoll_ctl mod failed %d %s", errno, strerror(errno));
     }
     void PollerEpoll::loop_once(int waitMs) 
     {
-
+        int64_t ticks = util::timeMilli();
+        lastActive_ = epoll_wait(fd_, activeEvs_, kMaxEvents, waitMs);
+        int64_t used = util::timeMilli() - ticks;
+        trace("epoll wait %d return %d errno %d used %lld millsecond",
+            waitMs, lastActive_, errno, (long long)used);
+        fatalif(lastActive_ < 0 && errno != EINTR, "epoll return error %d, %s", errno, strerror(errno));
+        while(-- lastActive_ >= 0)
+        {
+            int i = lastActive_;
+            Channel* ch = reinterpret_cast<Channel*>(activeEvs_[i].data.ptr);
+            int events = activeEvs_[i].events;
+            if(ch)
+            {
+                if(events & (kReadEvent | EPOLLERR))
+                {
+                    trace("channel %lld fd %d handle read", (long long)ch->id(), ch->fd());
+                    ch->handleRead();
+                }
+                else if(events & kWriteEvent)
+                {
+                    trace("channel %lld fd %d handle write", (long long)ch->id(), ch->fd());
+                    ch->handleRead();
+                }
+                else
+                {
+                    fatal("unexpected poller events");
+                }
+            }
+        }
     }
-
     PollerBase* createPoller()
     {
         return new PollerEpoll();

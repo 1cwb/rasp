@@ -12,7 +12,7 @@
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
-
+#include <thread>
 using namespace std;
 
 namespace rasp
@@ -35,7 +35,8 @@ namespace rasp
     {
         if(tid == 0)
         {
-            tid == port::gettid();
+            pthread_t mtid = pthread_self();
+            memcpy(&tid, &mtid, std::min(sizeof(mtid), sizeof(tid)));
         }
         if(level > level_)
         {
@@ -77,6 +78,7 @@ namespace rasp
         *++p = '\0';
         int fd = fd_ < 0 ? 1 : fd_;
         int err = write(fd, buffer, p - buffer);
+
         if(err != p - buffer)
         {
             fprintf(stderr, "write log file %s failed. written %d errmsg: %s\n",filename_.c_str(), err, strerror(errno));
@@ -101,9 +103,9 @@ namespace rasp
             return ;
         }
         filename_ = filename;
-        if(fd_ == -1)
+        if(fd_ < 0)
         {
-            fd_ == fd;
+            fd_ = fd;
         }
         else
         {
