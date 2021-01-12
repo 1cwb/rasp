@@ -2,13 +2,14 @@
 #include "mlog.h"
 #include <unistd.h>
 #include <set>
+#include "event_base.h"
 
 namespace rasp
 {
     struct PollerEpoll : public PollerBase
     {
         int fd_;
-        std::set<Channel*>  liveChabbels_;
+        std::set<Channel*>  liveChannels_;
         struct epoll_event activeEvs_[kMaxEvents]; 
         PollerEpoll();
         virtual ~PollerEpoll();
@@ -26,9 +27,9 @@ namespace rasp
     PollerEpoll::~PollerEpoll()
     {
         info("destroying poller %d", fd_);
-        while(liveChabbels_.size())
+        while(liveChannels_.size())
         {
-            (*liveChabbels_.begin())->close();
+            (*liveChannels_.begin())->close();
         }
         close(fd_);
         info("poller %d destroyed",fd_);
@@ -42,12 +43,12 @@ namespace rasp
         trace("adding channel %lld fd %d events %d epoll %d",(long long)ch->id(), ch->fd(), ev.events, fd_);
         int r = epoll_ctl(fd_, EPOLL_CTL_ADD, ch->fd(), &ev);
         fatalif(r, "epoll_ctl add failed %d %s",errno, strerror(errno));
-        liveChabbels_.insert(ch);
+        liveChannels_.insert(ch);
     }
     void PollerEpoll::removeChannel(Channel* ch) 
     {
         trace("deleting channel %lld fd %d epoll %d", (long long)ch->id(), ch->fd(), fd_);
-        liveChabbels_.erase(ch);
+        liveChannels_.erase(ch);
         for(int i = lastActive_; i >= 0; i --)
         {
             if(ch == activeEvs_[i].data.ptr)
@@ -102,6 +103,6 @@ namespace rasp
     }
     PollerBase* createPoller()
     {
-        return new PollerEpoll();
+        return new PollerEpoll;
     }
 }
