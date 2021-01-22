@@ -33,7 +33,7 @@ namespace rasp
     };
 
     typedef std::function<void()> Task;
-    extern template class SafeQueue<Task>;
+    //extern template class SafeQueue<Task>;
 
     struct ThreadPool: private noncopyable
     {

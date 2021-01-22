@@ -29,9 +29,10 @@ namespace rasp
         info("destroying poller %d", fd_);
         while(liveChannels_.size())
         {
+            //Channel close() will call poller_.removeChannel(this);
             (*liveChannels_.begin())->close();
         }
-        close(fd_);
+        ::close(fd_);
         info("poller %d destroyed",fd_);
     }
     void PollerEpoll::addChannel(Channel* ch) 

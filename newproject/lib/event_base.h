@@ -3,6 +3,7 @@
 #include "rasp_impl.h"
 #include "threads.h"
 #include "poller.h"
+#include "slice.h"
 
 namespace rasp
 {
@@ -10,7 +11,7 @@ namespace rasp
     typedef std::shared_ptr<TcpConn> TcpConnPtr;
     typedef std::shared_ptr<TcpServer> TcpServerPtr;
     typedef std::function<void(const TcpConnPtr&)> TcpCallBack;
-   // typedef std::function<void(const TcpConnPtr&), Slice msg> MsgCallBack;
+    typedef std::function<void(const TcpConnPtr&, Slice msg)> MsgCallBack;
 
     struct EventBases : private noncopyable
     {

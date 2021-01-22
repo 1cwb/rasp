@@ -44,7 +44,6 @@ namespace rasp
             th.swap(t);
         }
     }
-    //ThreadPool& exit() {tasks_.exit(); return *this;}
     void ThreadPool::join()
     {
         for(auto& t : threads_)
@@ -56,9 +55,4 @@ namespace rasp
     {
         return tasks_.push(move(task));
     }
-    //bool ThreadPool::addTask(Task& task) {return addTask(Task(task));}
-    //size_t ThreadPool::taskSize() {return tasks_.size();}
-   // private:
-     //   SafeQueue<Task> tasks_;
-     //   std::vector<std::thread> threads_;
 }

@@ -13,6 +13,7 @@
 #include <syslog.h>
 #include <unistd.h>
 #include <thread>
+#include "port_posix.h"
 using namespace std;
 
 namespace rasp
@@ -35,7 +36,7 @@ namespace rasp
     {
         if(tid == 0)
         {
-            pthread_t mtid = pthread_self();
+            pthread_t mtid = port::gettid();
             memcpy(&tid, &mtid, std::min(sizeof(mtid), sizeof(tid)));
         }
         if(level > level_)

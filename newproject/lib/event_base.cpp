@@ -4,6 +4,7 @@
 #include <list>
 #include <thread>
 #include "threads.h"
+#include "net.h"
 //#include "conn.h"
 
 using namespace std;
@@ -148,7 +149,7 @@ namespace rasp
                     task();
                 }
             }
-            else if(r == 0)
+            else if(r == 0) //Peer close fd, read return 0
             {
                 delete ch;
             }
@@ -162,7 +163,7 @@ namespace rasp
             }
         });
     }
-    void EventsImp::callIdles()
+    void EventsImp::callIdles() //run callback on time
     {
         int64_t now = util::timeMilli() / 1000;
         for(auto& l : idleConns_)
@@ -178,7 +179,40 @@ namespace rasp
                 }
                 node.updated_ = now;
                 lst.splice(lst.end(), lst, lst.begin());
+                node.cb_(node.con_);
             }
+        }
+    }
+    void EventsImp::repeatableTimeout(TimerRepeatable* tr)
+    {
+        tr->at += tr->interval;
+        tr->timerid = {tr->at, ++timerSeq_};
+        timers_[tr->timerid] = [this, tr](){repeatableTimeout(tr);};
+        refreshNearest(&tr->timerid);
+        tr->cb();
+    }
+    TimerId EventsImp::runAt(int64_t milli, Task&& task, int64_t interval) //interval != 0. loop
+    {
+        if(exit_)
+        {
+            return TimerId();
+        }
+        if(interval)
+        {
+            TimerId tid {-milli, ++timerSeq_};
+            TimerRepeatable& rtr = timerReps_[tid];
+            rtr = {milli, interval, {milli, ++timerSeq_}, move(task)};
+            TimerRepeatable* tr = &rtr;
+            timers_[tr->timerid] = [this, tr](){repeatableTimeout(tr);};
+            refreshNearest(&tr->timerid);
+            return tid;
+        }
+        else
+        {
+            TimerId tid {milli, ++timerSeq_};
+            timers_.insert({tid, move(task)});
+            refreshNearest(&tid);
+            return tid;
         }
     }
     IdleId EventsImp::registerIdle(int idle, const TcpConnPtr& con, const TcpCallBack& cb)
@@ -229,28 +263,20 @@ namespace rasp
             nextTimeout_ = nextTimeout_ < 0 ? 0 : nextTimeout_;
         }
     }
-    void EventsImp::repeatableTimeout(TimerRepeatable* tr)
-    {
-        tr->at += tr->interval;
-        tr->timerid = {tr->at, ++timerSeq_};
-        timers_[tr->timerid] = [this, tr](){repeatableTimeout(tr);};
-        refreshNearest(&tr->timerid);
-        tr->cb();
-    }
     void EventsImp::loop()
     {
         while(!exit_)
         {
             loop_once(10000);
-            timerReps_.clear();
-            timers_.clear();
-            idleConns_.clear();
-            for(auto recon : reconnectConns_)
-            {
-                recon->cleanup(recon);
-            }
-            loop_once(0);
         }
+        timerReps_.clear();
+        timers_.clear();
+        idleConns_.clear();
+        for(auto recon : reconnectConns_)
+        {
+            recon->cleanup(recon);
+        }
+        loop_once(0);
     }
     bool EventsImp::cancel(TimerId timerid)
     {
@@ -275,30 +301,6 @@ namespace rasp
            }
        }
        return false;
-    }
-    TimerId EventsImp::runAt(int64_t milli, Task&& task, int64_t interval)
-    {
-        if(exit_)
-        {
-            return TimerId();
-        }
-        if(interval)
-        {
-            TimerId tid {-milli, ++timerSeq_};
-            TimerRepeatable& rtr = timerReps_[tid];
-            rtr = {milli, interval, {milli, ++timerSeq_}, move(task)};
-            TimerRepeatable* tr = &rtr;
-            timers_[tr->timerid] = [this, tr](){repeatableTimeout(tr);};
-            refreshNearest(&tr->timerid);
-            return tid;
-        }
-        else
-        {
-            TimerId tid {milli, ++timerSeq_};
-            timers_.insert({tid, move(task)});
-            refreshNearest(&tid);
-            return tid;
-        }
     }
 
     //MultiBase
