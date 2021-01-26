@@ -113,10 +113,11 @@ namespace rasp
         {
             if(size() == 0)
             {
-                char b[sizeof(buf)];
-                memcpy(b, this, sizeof(b));
-                memcpy(this, &buf, sizeof(b));
-                memcpy(&buf, b, sizeof(b));
+                int len = sizeof(Buffer);
+                char b[len];
+                memcpy(b, this, len);
+                memcpy(this, &buf, len);
+                memcpy(reinterpret_cast<void*>(&buf), b, len);
                 std::swap(exp_, buf.exp_);
             }
             else

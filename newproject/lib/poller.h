@@ -6,8 +6,8 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <string>
-#include "util.h"
 #include "event_base.h"
+#include "util.h"
 
 namespace rasp
 {

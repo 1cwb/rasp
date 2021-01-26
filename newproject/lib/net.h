@@ -3,11 +3,13 @@
 #include <string>
 #include <netinet/in.h>
 #include <algorithm>
+#include <unistd.h>
 #include "slice.h"
 #include "port_posix.h"
 
 namespace rasp
 {
+    struct Slice;
     struct net
     {
         template<class T> static T hton(T v) {return port::htobe(v);}
@@ -52,9 +54,10 @@ namespace rasp
         char* allocRoom(size_t len) {char* p = makeRoom(len); addSize(len); return p;} 
         Buffer& append(const char* p, size_t len){memcpy(allocRoom(len), p, len); return *this;}
         Buffer& append(Slice slice) {return append(slice.data(), slice.size());}
-        Buffer& append(char* p){return append(p, strlen(p));}
+        Buffer& append(const char* p){return append(p, strlen(p));}
+        Buffer& append(const std::string p){return append(reinterpret_cast<const char*>(p.data()), p.size());}
         template<typename T> Buffer& appendValue(const T& v) {append((const char*)&v, sizeof(v)); return *this;}
-        Buffer& consume(size_t len) {b_ += len; if(size() == 0){clear(); return *this;}}
+        Buffer& consume(size_t len) {b_ += len; if(size() == 0){clear();}return *this;}
         Buffer& absorb(Buffer& buf);
         void setSuggestSize(size_t sz) {exp_ = sz;}
         Buffer(const Buffer& b) { copyFrom(b); }

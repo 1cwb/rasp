@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <iostream>
+#include <fcntl.h>
 
 namespace rasp
 {

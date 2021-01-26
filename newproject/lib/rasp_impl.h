@@ -1,9 +1,9 @@
 #pragma once
 #include "mlog.h"
 #include "util.h"
-//#include "net.h"
+#include "net.h"
 #include "threads.h"
-//#include "codec.h"
+#include "codec.h"
 #include <utility>
 #include <set>
 #include <memory>
@@ -11,6 +11,7 @@
 
 namespace rasp
 {
+    struct PollerBase;
     struct Channel;
     struct TcpConn;
     struct TcpServer;
@@ -24,7 +25,7 @@ namespace rasp
     {
         void* ctx;
         Task ctxDel;
-        AutoContext():ctx(0) {}
+        AutoContext():ctx(nullptr) {}
         template<typename T>
         T& context() 
         {

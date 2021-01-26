@@ -42,7 +42,7 @@ namespace rasp
         const char* pb_;
         const char* pe_;
     };
-        Slice Slice::eatWord()
+        inline Slice Slice::eatWord()
         {
             const char* b = pb_;
             while(b < pe_ && isspace(*b))
@@ -57,7 +57,7 @@ namespace rasp
             pb_ = e;
             return Slice(b, e - b);
         }
-        Slice Slice::eatLine()
+        inline Slice Slice::eatLine()
         {
             const char* p = pb_;
             while(pb_ < pe_ && *pb_ != '\n' && *pb_ != '\r')
@@ -66,7 +66,7 @@ namespace rasp
             }
             return Slice(p, pb_ - p);
         }
-        Slice& Slice::trimSpace()
+        inline Slice& Slice::trimSpace()
         {
             while(pb_ < pe_ && isspace(*pb_))
             {
@@ -78,7 +78,7 @@ namespace rasp
             }
             return *this;
         }
-        int Slice::compare(const Slice& b) const
+        inline int Slice::compare(const Slice& b) const
         {
             size_t sz = size(), bsz = b.size();
             const int min_len = (sz < bsz) ? sz : bsz;
@@ -96,7 +96,7 @@ namespace rasp
             }
             return r;
         }
-        std::vector<Slice> Slice::split(char ch) const
+        inline std::vector<Slice> Slice::split(char ch) const
         {
             std:: vector<Slice> r;
             const char* pb = pb_;
@@ -114,15 +114,15 @@ namespace rasp
             }
             return r;
         }
-        bool operator<(const Slice& x, const Slice&y)
+        inline bool operator<(const Slice& x, const Slice&y)
         {
             return x.compare(y) < 0;
         }
-        bool operator==(const Slice& x, const Slice&y)
+        inline bool operator==(const Slice& x, const Slice&y)
         {
             return x.compare(y) == 0;
         }
-        bool operator!=(const Slice& x, const Slice&y)
+        inline bool operator!=(const Slice& x, const Slice&y)
         {
             return !(x == y);
         }

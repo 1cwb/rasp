@@ -5,7 +5,7 @@
 #include <thread>
 #include "threads.h"
 #include "net.h"
-//#include "conn.h"
+#include "conn.h"
 
 using namespace std;
 
@@ -404,10 +404,36 @@ namespace rasp
     {
         base->imp_->updateIdle(idle);
     }
-    //EventBase* base_;
-    //PollerBase* poller_;
-    //int fd_;
-    //short events_;
-    //int64_t id_;
-    //std::function<void()> readcb_, writecb_, errorcb_;
+    //for conn
+    TcpConn::TcpConn(): base_(nullptr), channel_(nullptr), state_(State::Invalid), destPort_(-1),
+        connectTimeout_(0), reconnectInterval_(-1), connectedTime_(util::timeMilli())
+    {
+
+    }
+    TcpConn::~TcpConn()
+    {
+        trace("tcp destroyed %s - %s",local_.toString().c_str(), peer_.toString().c_str());
+        delete channel_;
+    }
+    void TcpConn::addIdleCB(int idle, const TcpCallBack& cb)
+    {
+        if(channel_)
+        {
+            idleIds_.push_back(getBase()->imp_->registerIdle(idle, shared_from_this(), cb));
+        }
+    }
+    void TcpConn::reconnect()
+    {
+        auto con = shared_from_this();
+        getBase()->imp_->reconnectConns_.insert(con);
+        long long interval = reconnectInterval_ - (util::timeMilli() - connectedTime_);
+        interval = interval > 0 ? interval : 0;
+        info("reconnect interval: %d will reconnect after %lld ms", reconnectInterval_, interval);
+        getBase()->runAfter(interval, [this, con](){
+            getBase()->imp_->reconnectConns_.erase(con);
+            connect(getBase(), destHost_, (short)destPort_, connectTimeout_, localIp_);
+        });
+        delete channel_;
+        channel_ = nullptr;
+    }
 }
