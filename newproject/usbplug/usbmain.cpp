@@ -4,15 +4,21 @@
 #include "util.h"
 #include <chrono>
 #include "mlog.h"
-
+#include "rasp_impl.h"
+#include "event_base.h"
+#include "conn.h"
 using namespace std;
 using namespace rasp;
 
 int main(int argc, char** argv)
-{
-    Logger& mlog = Logger::getLogger();
-    mlog.setFileName("/home/rock/12345.log");
-    while(true)
-    error("hello world");
+{   
+    EventBase base;
+    TcpServerPtr svr = TcpServer::startServer(&base, "", 99);
+    svr->onConnRead([](const TcpConnPtr con){
+        info("%s",con->getInput());
+        con->send(con->getInput());
+    });
+    base.runAfter(3000,[](){static int i = 0; cout << i++<< endl;},1000);
+    base.loop();
     return 0;
 }
