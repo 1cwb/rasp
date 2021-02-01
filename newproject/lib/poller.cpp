@@ -93,7 +93,7 @@ namespace rasp
                 else if(events & kWriteEvent)
                 {
                     trace("channel %lld fd %d handle write", (long long)ch->id(), ch->fd());
-                    ch->handleRead();
+                    ch->handleWrite();
                 }
                 else
                 {

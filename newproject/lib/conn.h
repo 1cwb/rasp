@@ -47,6 +47,7 @@ namespace rasp
         void send(Buffer& buff);
         void send(const char* buff, ssize_t len);
         void send(const std::string& s){send(s.data(), s.size());};
+        void send(const char* s){send(s, strlen(s));}
 
         //call back when get data
         void onRead(const TcpCallBack& cb) {assert(!readcb_); readcb_ = cb;}
@@ -95,5 +96,29 @@ namespace rasp
         virtual int readImp(int fd, void* buf, size_t bytes){return ::read(fd, buf, bytes);}
         virtual int writeImp(int fd, const void* buf, size_t bytes){return ::write(fd, buf, bytes);}
         virtual int handleHandshake(const TcpConnPtr& con);
+    };
+    struct TcpServer : private noncopyable
+    {
+        TcpServer(EventBase* bases);
+        int bind(const std::string& host, short port, bool reusePort=false);
+        static TcpServerPtr startServer(EventBase* bases, const std::string& host, short port, bool reusePort = false);
+        ~TcpServer() {if(listen_channel_){delete listen_channel_;}}
+        Ip4Addr getAddr() {return addr_;}
+        EventBase* getBase() { return base_; }
+        void onConnCreate(const std::function<TcpConnPtr()>& cb) {createcb_ = cb;}
+        void onConnState(const TcpCallBack& cb){statecb_ = cb;}
+        void onConnRead(const TcpCallBack& cb){readcb_ = cb; assert(!msgcb_);}
+        //conflit with onConnRead callback
+        void onConnMsg(CodecBase* codec, const MsgCallBack& cb) { codec_.reset(codec); msgcb_ = cb; assert(!readcb_); }
+    private:
+        EventBase* base_;
+        EventBases* bases_;
+        Ip4Addr addr_;
+        Channel* listen_channel_;
+        TcpCallBack statecb_, readcb_;
+        MsgCallBack msgcb_;
+        std::function<TcpConnPtr()> createcb_;
+        std::unique_ptr<CodecBase> codec_;
+        void handleAccept();
     };
 }

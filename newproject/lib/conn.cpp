@@ -98,8 +98,10 @@ namespace rasp
     }
     void TcpConn::handleRead(const TcpConnPtr& con)
     {
+        info("handle read now");
         if(state_ == State::HandShaking && handleHandshake(con))
         {
+            error("state_ == handle shake");
             return;
         }
         while(state_ == State::Connected)
@@ -113,6 +115,7 @@ namespace rasp
             }
             if(rd == -1 && errno == EINTR)
             {
+                info("rd == -1 && errno == EINTR");
                 continue;
             }
             else if(rd == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
@@ -129,6 +132,7 @@ namespace rasp
             }
             else if(channel_->fd() == -1 || rd == 0 || rd == -1)
             {
+                info("clean up con");
                 cleanup(con);
                 break;
             }
@@ -208,10 +212,10 @@ namespace rasp
         {
             state_ = State::Closed;
         }
-        trace("tcp closing %s - %s fd %d %d",
+        info("tcp closing %s - %s fd %d %d, %s",
             local_.toString().c_str(),
             peer_.toString().c_str(),
-            channel_ ? channel_->fd() : -1, errno);
+            channel_ ? channel_->fd() : -1, errno, strerror(errno));
         getBase()->cancel(timeOutId_);
         if(statecb_)
         {
@@ -230,6 +234,7 @@ namespace rasp
         Channel* ch = channel_;
         channel_ = nullptr;
         delete ch;
+        info("clean up sucessful");
     }
     void TcpConn::connect(EventBase* base, const std::string& host, short port, int timeout, const std::string& localip)
     {
@@ -250,11 +255,14 @@ namespace rasp
         {
             Ip4Addr addr(localip, 0);
             r = ::bind(fd, (struct sockaddr*)&addr.getAddr(), sizeof(struct sockaddr));
-            error("bind to %s failed error %d %s", addr.toString().c_str(), errno, strerror(errno));
+            if(r != 0)
+            {
+                error("bind to %s failed error %d %s", addr.toString().c_str(), errno, strerror(errno));
+            }
         }
         if(r == 0)
         {
-            r = ::connect(fd, (struct sockaddr*)&addr.getAddr(), sizeof(sockaddr));
+            r = ::connect(fd, (struct sockaddr*)&addr.getAddr(), sizeof(sockaddr)); 
             if(r != 0 && errno != EINPROGRESS)
             {
                 error("connect to %s error %d %s", addr.toString().c_str(), errno, strerror(errno));
@@ -292,7 +300,10 @@ namespace rasp
         state_ = State::HandShaking;
         local_ = local;
         peer_ = peer;
-        delete channel_;
+        if(channel_)
+        {
+            delete channel_;
+        }
         channel_ = new Channel(base, fd, kWriteEvent|kReadEvent);
         trace("tcp constructed %s - %s fd: %d",local_.toString().c_str(),peer_.toString().c_str(),fd);
         TcpConnPtr con = shared_from_this();
@@ -325,5 +336,100 @@ namespace rasp
         }
         return 0;
     }
-
+    //TcpServer
+    TcpServer::TcpServer(EventBase* bases): base_(bases->allocBase()),bases_(bases), listen_channel_(nullptr), createcb_([](){return TcpConnPtr(new TcpConn);})
+    {
+        
+    }
+    int TcpServer::bind(const std::string& host, short port, bool reusePort)
+    {
+        addr_ = Ip4Addr(host, port);
+        int fd = socket(AF_INET, SOCK_STREAM, 0);
+        int r = net::setReuseAddr(fd);
+        fatalif(r, "set socket reuse addr option failed");
+        r = net::setReusePort(fd, reusePort);
+        fatalif(r, "set socket reuse port option failed");
+        r = util::addFdFlag(fd, FD_CLOEXEC);
+        fatalif(r, "addFdFlag FD_CLOEXEC failed");
+        r = ::bind(fd, (struct sockaddr*)&addr_.getAddr(), sizeof(struct sockaddr));
+        if(r)
+        {
+            ::close(fd);
+            error("bind to %s failed %d %s", addr_.toString().c_str(), errno, strerror(errno));
+            return errno;
+        }
+        r = listen(fd, 20);
+        fatalif(r, "listen failed %d %s", errno, strerror(errno));
+        info("fd %d listening at %s", fd, addr_.toString().c_str());
+        listen_channel_ = new Channel(base_, fd, kReadEvent);
+        listen_channel_->onRead([this]{ handleAccept(); });
+        return 0;
+    }
+    TcpServerPtr TcpServer::startServer(EventBase* bases, const std::string& host, short port, bool reusePort )
+    {
+        TcpServerPtr p(new TcpServer(bases));
+        int r = p->bind(host, port, reusePort);
+        if (r)
+        {
+            error("bind to %s:%d failed %d %s", host.c_str(), port, errno, strerror(errno));
+        }
+        return r == 0 ? p : nullptr;
+    }
+    void TcpServer::handleAccept()
+    {
+        struct sockaddr_in raddr;
+        socklen_t rsz = sizeof(raddr);
+        int lfd = listen_channel_->fd();
+        int cfd;
+        while(lfd >0 && (cfd = accept(lfd, (struct sockaddr*)(&raddr), &rsz)) >= 0)
+        {
+            info("cfd is %d",cfd);
+            sockaddr_in peer, local;
+            socklen_t alen = sizeof(peer);
+            int r = getpeername(cfd, (sockaddr*)&peer, &alen);
+            if(r < 0)
+            {
+                error("get peer name failed %d %s", errno, strerror(errno));
+                continue;
+            }
+            r = getsockname(cfd, (sockaddr*)&local, &alen);
+            if (r < 0) 
+            {
+                error("getsockname failed %d %s", errno, strerror(errno));
+                continue;
+            }
+            r = util::addFdFlag(cfd, FD_CLOEXEC);
+            fatalif(r, "addFdFlag FD_CLOEXEC failed");
+            EventBase* b = bases_->allocBase();
+            auto addcon = [=](){
+                TcpConnPtr con = createcb_();
+                con->attach(b, cfd, local, peer);
+                if(statecb_)
+                {
+                    con->onState(statecb_);
+                }
+                if(readcb_)
+                {
+                    con->onRead(readcb_);
+                }
+                if(msgcb_)
+                {
+                    con->onMsg(codec_->clone(), msgcb_);
+                }
+            };
+            if(b == base_)
+            {
+                addcon();
+            }
+            else
+            {
+                b->safeCall(std::move(addcon));
+            }
+        }
+        if(lfd >= 0 && errno != EAGAIN && errno != EINTR)
+        {
+            warn("accept return %d  %d %s", cfd, errno, strerror(errno));
+        }
+        info("tony -- debug");
+    }
 }

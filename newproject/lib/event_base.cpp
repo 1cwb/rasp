@@ -66,7 +66,7 @@ namespace rasp
         void safeCall(Task&& task) {tasks_.push(move(task)); wakeup();}
         void loop();
         void loop_once(int waitMs) {poller_->loop_once(std::min(waitMs, nextTimeout_)); handleTimeouts();}
-        void wakeup() 
+        void wakeup() //==> wake up queue to do tasks(init())
         {
             int r = write(wakeupFds_[1], "", 1);
             fatalif(r <= 0, "write error wd %d %d %s",r, errno, strerror(errno));
@@ -289,6 +289,7 @@ namespace rasp
                timers_.erase(ptimer);
            }
            timerReps_.erase(p);
+           refreshNearest();
            return true;
        }
        else
@@ -297,6 +298,7 @@ namespace rasp
            if(p != timers_.end())
            {
                timers_.erase(p);
+               refreshNearest();
                return true;
            }
        }
@@ -413,7 +415,11 @@ namespace rasp
     TcpConn::~TcpConn()
     {
         trace("tcp destroyed %s - %s",local_.toString().c_str(), peer_.toString().c_str());
-        delete channel_;
+        if(channel_)
+        {
+            delete channel_;
+            channel_ = nullptr;
+        }
     }
     void TcpConn::addIdleCB(int idle, const TcpCallBack& cb)
     {

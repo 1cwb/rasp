@@ -15,7 +15,7 @@ CUR_PATH_SRC_FILE := $(CUR_PATH)*.cpp
 CUR_PATH_SRC_FILE += $(CUR_PATH)*.c
 
 # 目标
-TARGET += server
+TARGET += client
 # 源文件
 LIBSRC := $(wildcard $(CUR_PATH_SRC_FILE))
 GLOBAL_SRC_FILE += $(LIBSRC)

@@ -12,13 +12,14 @@ using namespace rasp;
 
 int main(int argc, char** argv)
 {   
-    EventBase base;
-    TcpServerPtr svr = TcpServer::startServer(&base, "", 99);
-    svr->onConnRead([](const TcpConnPtr con){
-        info("%s",con->getInput());
-        con->send(con->getInput());
-    });
-    base.runAfter(3000,[](){static int i = 0; cout << i++<< endl;},1000);
+     EventBase base;
+     TcpServerPtr svr = TcpServer::startServer(&base, "192.168.31.162", 4748);
+     svr->onConnRead([](const TcpConnPtr con){
+         info("%s",con->getInput().data());
+         con->send(con->getInput());
+     });
+     base.loop();
+     return 0;
+
     base.loop();
-    return 0;
 }
