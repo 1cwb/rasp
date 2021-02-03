@@ -23,7 +23,7 @@ namespace rasp
                 ssize_t sended = isend(buff.begin(), buff.size());
                 buff.consume(sended);
             }
-            if(buff.size())
+            if(buff.size()) // send buff is full
             {
                 output_.absorb(buff);
                 if(!channel_->writeEnabled())
@@ -133,6 +133,7 @@ namespace rasp
             else if(channel_->fd() == -1 || rd == 0 || rd == -1)
             {
                 info("clean up con");
+                info("fd is %d, rd = %d",channel_->fd(), rd);
                 cleanup(con);
                 break;
             }
@@ -253,11 +254,11 @@ namespace rasp
         int r = 0;
         if(localip.size())
         {
-            Ip4Addr addr(localip, 0);
-            r = ::bind(fd, (struct sockaddr*)&addr.getAddr(), sizeof(struct sockaddr));
+            Ip4Addr addr_local(localip, 0);
+            r = ::bind(fd, (struct sockaddr*)&addr_local.getAddr(), sizeof(struct sockaddr));
             if(r != 0)
             {
-                error("bind to %s failed error %d %s", addr.toString().c_str(), errno, strerror(errno));
+                error("bind to %s failed error %d %s", addr_local.toString().c_str(), errno, strerror(errno));
             }
         }
         if(r == 0)

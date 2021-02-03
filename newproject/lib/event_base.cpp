@@ -125,8 +125,14 @@ namespace rasp
     }
     EventsImp::~EventsImp()
     {
-        delete poller_;
-        close(wakeupFds_[1]);
+        if(poller_)
+        {
+            delete poller_;
+        }
+        if(wakeupFds_[1] > 0)
+        {
+            ::close(wakeupFds_[1]);
+        }
     }
     void EventsImp::init()
     {
@@ -199,11 +205,12 @@ namespace rasp
         }
         if(interval)
         {
-            TimerId tid {-milli, ++timerSeq_};
+            // TimerRepeatable for loop task
+            TimerId tid {-milli, ++timerSeq_};  //create timeId for new TimerRepeatable
             TimerRepeatable& rtr = timerReps_[tid];
-            rtr = {milli, interval, {milli, ++timerSeq_}, move(task)};
+            rtr = {milli, interval, {milli, ++timerSeq_}, move(task)};  //init the new TimerRepeatable,
             TimerRepeatable* tr = &rtr;
-            timers_[tr->timerid] = [this, tr](){repeatableTimeout(tr);};
+            timers_[tr->timerid] = [this, tr](){repeatableTimeout(tr);};  // add new timer_ item
             refreshNearest(&tr->timerid);
             return tid;
         }
@@ -219,11 +226,11 @@ namespace rasp
     {
         if(!idleEnabled)
         {
-            base_->runAfter(1000, [this](){callIdles();}, 1000);
+            base_->runAfter(1000, [this](){callIdles();}, 1000);// one second check a time
             idleEnabled = true;
         }
         auto& lst = idleConns_[idle];
-        lst.push_back(IdleNode {con, util::timeMilli() / 1000, move(cb)});
+        lst.push_back(IdleNode {con, util::timeMilli() / 1000, move(cb)});//after idle second, it will run
         trace("register idle");
         return IdleId(new IdleIdImp(&lst, --lst.end()));
     }
