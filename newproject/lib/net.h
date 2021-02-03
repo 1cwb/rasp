@@ -39,7 +39,7 @@ namespace rasp
 
     struct Buffer
     {
-        Buffer(): buf_(nullptr), b_(0), e_(0), exp_(512){}
+        Buffer(): buf_(nullptr), b_(0), e_(0), cap_(0), exp_(512){}
         ~Buffer() {delete [] buf_;}
         void clear(){delete [] buf_, buf_ = nullptr; cap_ = 0; b_ = e_ = 0;}
         size_t size() const {return e_ - b_;}
@@ -61,7 +61,17 @@ namespace rasp
         Buffer& absorb(Buffer& buf);
         void setSuggestSize(size_t sz) {exp_ = sz;}
         Buffer(const Buffer& b) { copyFrom(b); }
-        Buffer& operator=(const Buffer& b) { delete[] buf_; buf_ = nullptr; copyFrom(b); return *this; }
+        Buffer& operator=(const Buffer& b) 
+        {
+            if(this == &b)
+            {
+                return *this;
+            } 
+            delete[] buf_; 
+            buf_ = nullptr; 
+            copyFrom(b); 
+            return *this; 
+        }
         operator Slice () { return Slice(data(), size()); }
     private:
         char* buf_;
