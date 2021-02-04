@@ -98,7 +98,6 @@ namespace rasp
     }
     void TcpConn::handleRead(const TcpConnPtr& con)
     {
-        info("handle read now");
         if(state_ == State::HandShaking && handleHandshake(con))
         {
             error("state_ == handle shake");
@@ -132,8 +131,6 @@ namespace rasp
             }
             else if(channel_->fd() == -1 || rd == 0 || rd == -1)
             {
-                info("clean up con");
-                info("fd is %d, rd = %d",channel_->fd(), rd);
                 cleanup(con);
                 break;
             }
@@ -213,7 +210,7 @@ namespace rasp
         {
             state_ = State::Closed;
         }
-        info("tcp closing %s - %s fd %d %d, %s",
+        trace("tcp closing %s - %s fd %d %d, %s",
             local_.toString().c_str(),
             peer_.toString().c_str(),
             channel_ ? channel_->fd() : -1, errno, strerror(errno));
@@ -235,7 +232,6 @@ namespace rasp
         Channel* ch = channel_;
         channel_ = nullptr;
         delete ch;
-        info("clean up sucessful");
     }
     void TcpConn::connect(EventBase* base, const std::string& host, short port, int timeout, const std::string& localip)
     {
@@ -361,7 +357,6 @@ namespace rasp
         }
         r = listen(fd, 20);
         fatalif(r, "listen failed %d %s", errno, strerror(errno));
-        info("fd %d listening at %s", fd, addr_.toString().c_str());
         listen_channel_ = new Channel(base_, fd, kReadEvent);
         listen_channel_->onRead([this]{ handleAccept(); });
         return 0;
@@ -384,7 +379,6 @@ namespace rasp
         int cfd;
         while(lfd >0 && (cfd = accept(lfd, (struct sockaddr*)(&raddr), &rsz)) >= 0)
         {
-            info("cfd is %d",cfd);
             sockaddr_in peer, local;
             socklen_t alen = sizeof(peer);
             int r = getpeername(cfd, (sockaddr*)&peer, &alen);
@@ -431,6 +425,5 @@ namespace rasp
         {
             warn("accept return %d  %d %s", cfd, errno, strerror(errno));
         }
-        info("tony -- debug");
     }
 }

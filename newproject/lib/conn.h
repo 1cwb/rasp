@@ -14,8 +14,10 @@ namespace rasp
             Failed
         };
 
-        TcpConn();
-        virtual ~TcpConn();
+        TcpConn(); //do init
+        virtual ~TcpConn(); // delete channel
+        // it create socket and connect to server and get local Ipa4ddr
+        // call attach and register timeout task(if time out > 0)
         template<typename C = TcpConn>
         static TcpConnPtr createConnection(EventBase* base, const std::string& host, short port, int timeout = 0, const std::string& localip = "")
         {
@@ -23,6 +25,7 @@ namespace rasp
             con->connect(base, host, port, timeout, localip);
             return con;
         }
+        //attatch create a new channel. and register handle/read callback to poller
         template<typename C = TcpConn>
         static TcpConnPtr createConnection(EventBase* base, int fd, Ip4Addr local, Ip4Addr peer)
         {
@@ -43,8 +46,8 @@ namespace rasp
         bool writable() {return channel_ ? channel_->writeEnabled() : false;}
 
         //send data
-        void sendOutput() {send(output_);}
-        void send(Buffer& buff);
+        void sendOutput() {send(output_);} //if real send output_
+        void send(Buffer& buff); //just add data to out put but never send
         void send(const char* buff, ssize_t len);
         void send(const std::string& s){send(s.data(), s.size());};
         void send(const char* s){send(s, strlen(s));}
