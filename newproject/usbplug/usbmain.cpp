@@ -13,15 +13,15 @@ using namespace rasp;
 int main(int argc, char** argv)
 {   
      EventBase base;
-     TcpServerPtr svr = TcpServer::startServer(&base, "192.168.31.162", 4748);
+     TcpServerPtr svr = TcpServer::startServer(&base, "192.168.31.28", 4748);
      svr->onConnRead([](const TcpConnPtr con){
          info("%s",con->getInput().data());
          con->send(con->getInput());
          con->sendOutput();
      });
      svr->onConnState([&](const TcpConnPtr& con) { //200ms后关闭连接
-        if (con->getState() == TcpConn::Connected)
-            base.runAfter(5, [con](){ info("close con after 200ms"); con->close(); });
+        if (con->getState() == TcpConn::State::Closed)
+           info("customer closed");
     });
      base.loop();
      return 0;

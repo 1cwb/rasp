@@ -14,15 +14,19 @@ namespace rasp
     {
         if(channel_)
         {
+            //1.not shake hand.
+            //2.send buff is full
             if(channel_->writeEnabled())
             {
                 output_.absorb(buff);
             }
+            //normal send
             if(buff.size())
             {
                 ssize_t sended = isend(buff.begin(), buff.size());
                 buff.consume(sended);
             }
+            //if send buff is full, add the data to output_ buff,and open write event
             if(buff.size()) // send buff is full
             {
                 output_.absorb(buff);
@@ -303,6 +307,8 @@ namespace rasp
         }
         channel_ = new Channel(base, fd, kWriteEvent|kReadEvent);
         trace("tcp constructed %s - %s fd: %d",local_.toString().c_str(),peer_.toString().c_str(),fd);
+        // beacuse con is created in createConnection, if you do not call shread_from_this,it will be delete after 
+        // createConnection return.
         TcpConnPtr con = shared_from_this();
         con->channel_->onRead([=](){con->handleRead(con);});
         con->channel_->onWrite([=](){con->handleWrite(con);});

@@ -132,6 +132,7 @@ namespace rasp
         if(wakeupFds_[1] > 0)
         {
             ::close(wakeupFds_[1]);
+            wakeupFds_[1] = -1;
         }
     }
     void EventsImp::init()
@@ -157,6 +158,7 @@ namespace rasp
             }
             else if(r == 0) //Peer close fd, read return 0
             {
+                // when delete poller, it will be closed, and read return 0
                 delete ch;
             }
             else if(errno == EINTR)

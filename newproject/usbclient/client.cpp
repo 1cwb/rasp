@@ -13,7 +13,7 @@ using namespace rasp;
 int main(int argc, char** argv)
 {   
     EventBase base(1000);
-    TcpConnPtr con = TcpConn::createConnection(&base, "192.168.31.162", 4748);
+    TcpConnPtr con = TcpConn::createConnection(&base, "192.168.31.28", 4748);
 
     Buffer test;
     
@@ -46,6 +46,7 @@ int main(int argc, char** argv)
     con->addIdleCB(30, [](const TcpConnPtr& c){
         //c->close();
     });
+    con->close();
     con->setReconnectInterval(5000);
     //base.runAfter(3000,[con](){con->send("hello world,,,");},1);
     base.loop();
