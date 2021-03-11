@@ -49,6 +49,7 @@ namespace rasp
     void PollerEpoll::removeChannel(Channel* ch) 
     {
         trace("deleting channel %lld fd %d epoll %d", (long long)ch->id(), ch->fd(), fd_);
+        //if close fd before call EPOLL_CTL_DEL, the kernel will release fd
         int r = epoll_ctl(fd_, EPOLL_CTL_DEL, ch->fd(), nullptr);
         fatalif(r, "epoll_ctl add failed %d %s",errno, strerror(errno));
         liveChannels_.erase(ch);
