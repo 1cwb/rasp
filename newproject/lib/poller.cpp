@@ -49,6 +49,8 @@ namespace rasp
     void PollerEpoll::removeChannel(Channel* ch) 
     {
         trace("deleting channel %lld fd %d epoll %d", (long long)ch->id(), ch->fd(), fd_);
+        int r = epoll_ctl(fd_, EPOLL_CTL_DEL, ch->fd(), nullptr);
+        fatalif(r, "epoll_ctl add failed %d %s",errno, strerror(errno));
         liveChannels_.erase(ch);
         for(int i = lastActive_; i >= 0; i --)
         {
@@ -58,6 +60,7 @@ namespace rasp
                 break;
             }
         }
+
     }
     void PollerEpoll::updateChannel(Channel* ch) 
     {
