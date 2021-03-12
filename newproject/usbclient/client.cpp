@@ -35,20 +35,8 @@ int main(int argc, char** argv)
             c->send("fuck every thing");
         }
     });
-    con->onRead([](const TcpConnPtr& c){
-        info("%s",c->getInput());
-        //c->send(c->getInput());
-        //c->sendOutput();
-    });
-    con->onWritable([](const TcpConnPtr& c){
-        info("xxxxx can write\n");
-    });
-    con->addIdleCB(30, [](const TcpConnPtr& c){
-        //c->close();
-    });
-    con->close();
-    con->setReconnectInterval(5000);
-    //base.runAfter(3000,[con](){con->send("hello world,,,");},1);
+
+    base.runAfter(3000,[con](){con->send("hello world,,,");},1000);
     base.loop();
     return 0;
 }
