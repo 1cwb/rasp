@@ -7,23 +7,21 @@
 #include "rasp_impl.h"
 #include "event_base.h"
 #include "conn.h"
+#include "http.h"
 using namespace std;
 using namespace rasp;
 
 int main(int argc, char** argv)
 {   
     EventBase base(1000);
-    TcpConnPtr con = TcpConn::createConnection(&base, "192.168.31.28", 4748);
+    TcpConnPtr con = TcpConn::createConnection(&base, "www.baidu.com", 80);
+    HttpConnPtr http(con);
+    http.onHttpMsg([con](const HttpConnPtr& cb)
+    {
+        cout << cb.getResponse().body << endl;
+    });
 
-    Buffer test;
-    
-    
-    for(int i = 0; i< 10; i++){
-    test.append("hello world...");
-    con->send(test);}
-    con->sendOutput();
-
-    con->onState([&base](const TcpConnPtr& c)
+    con->onState([&base, &http](const TcpConnPtr& c)
     {
         if(c->state_ == TcpConn::Closed)
         {
@@ -32,11 +30,23 @@ int main(int argc, char** argv)
         }
         if(c->state_ == TcpConn::Connected)
         {
-            c->send("fuck every thing");
+            cout << "connect" << endl;
+            http.sendRequest();
         }
     });
+    /*
+    Buffer test;
+    
+    
+    for(int i = 0; i< 10; i++){
+    test.append("hello world...");
+    con->send(test);}
+    con->sendOutput();
 
+    
+    
     base.runAfter(3000,[con](){con->send("hello world,,,");},1000);
+    */
     base.loop();
     return 0;
 }
