@@ -18,7 +18,16 @@ int main(int argc, char** argv)
     HttpConnPtr http(con);
     http.onHttpMsg([con](const HttpConnPtr& cb)
     {
-        cout << cb.getResponse().body << endl;
+        cout << cb.getResponse().getBody().toString().c_str() << endl;
+        cout << cb.getResponse().getContentLen() << endl;
+        cout << cb.getResponse().getHeader("content-length")<< endl;
+        cout << cb.getResponse().getVersion() ;
+        cout << cb.getResponse().getStatus() ;
+        cout << cb.getResponse().getStatusWord() << endl;
+        for(auto& h : cb.getResponse().getHeaders())
+        {
+            cout << h.first << ": " << h.second << endl;
+        }
     });
 
     con->onState([&base, &http](const TcpConnPtr& c)
@@ -31,6 +40,8 @@ int main(int argc, char** argv)
         if(c->state_ == TcpConn::Connected)
         {
             cout << "connect" << endl;
+            http.getRequest().getQureUri() = "/";
+            http.getRequest().getHeaders()["Host"] = "www.baidu.com";
             http.sendRequest();
         }
     });
