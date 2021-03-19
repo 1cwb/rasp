@@ -6,7 +6,7 @@
 
 namespace rasp
 {
-    struct HttpMsg
+    struct HttpMsg //base http
     {
         enum Result
         {
@@ -23,14 +23,21 @@ namespace rasp
         virtual void clear();
 
         std::string getHeader(const std::string& n){return getValueFromMap_(headers, n);}
+        std::map<std::string, std::string>& getHeaders(){return headers;}
+
+        std::string& getBody1() {return body;}
+        Slice& getBody2() {return body2;}
         Slice getBody() {return body2.size() ? body2 : Slice(body);}
+        
+        std::string& getVersion() {return version;}
+        size_t getContentLen() {return contentLen_;}
         int getByte() {return scanned_;}
-    
+    protected:
         std::map<std::string, std::string> headers;
         std::string body;
         Slice body2;
         std::string version;
-    protected:
+
         bool complete_;
         size_t contentLen_;
         size_t scanned_;
@@ -52,6 +59,11 @@ namespace rasp
             query_uri = "";
             uri = "";
         }
+        std::map<std::string, std::string>& getArgs() {return args;}
+        std::string& getMethod() {return method;}
+        std::string& getUri() {return uri;}
+        std::string& getQureUri() {return query_uri;}
+    protected:
         std::map<std::string, std::string> args;
         std::string method;
         std::string uri;
@@ -78,6 +90,9 @@ namespace rasp
             statusWord = msg;
             body = msg;
         }
+        int& getStatus() {return status;}
+        std::string& getStatusWord(){return statusWord;}
+    protected:
         std::string statusWord; 
         int status;
     };
@@ -95,14 +110,14 @@ namespace rasp
 
         void sendRequest() const {sendRequest(getRequest());}
         void sendResponse() const {sendResponse(getResponse());}
-        void sendRequest(HttpRequest& req) const
+        void sendRequest(HttpRequest& req) const //for client
         {
             req.encode(tcp->getOutput());
             logOutput("http req");
             clearData();
             tcp->sendOutput();
         }
-        void sendResponse(HttpResponse& resp) const
+        void sendResponse(HttpResponse& resp) const //for server
         {
             resp.encode(tcp->getOutput());
             logOutput("http resp");
@@ -125,4 +140,21 @@ namespace rasp
     };
 
     typedef HttpConnPtr::HttpCallBack HttpCallBack;
+
+    struct HttpServer : public TcpServer
+    {
+        HttpServer(EventBases* base);
+        template<typename Conn = TcpConn>
+        void setConnType() //set type
+        {
+            conncb_ = []() {return TcpConnPtr(new Conn);};
+        }
+        void onGet(const std::string &uri, const HttpCallBack& cb){cbs_["GET"][uri] = cb;}
+        void onRequest(const std::string& method, const std::string&uri, const HttpCallBack& cb){cbs_[method][uri] = cb;}
+        void onDefault(const HttpCallBack& cb) {defcb_ = cb;}
+    private:
+        HttpCallBack defcb_;
+        std::function<TcpConnPtr()> conncb_;
+        std::map<std::string, std::map<std::string, HttpCallBack>> cbs_; //map method -> uri -> callback
+    };
 }

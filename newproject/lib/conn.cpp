@@ -340,7 +340,7 @@ namespace rasp
         return 0;
     }
     //TcpServer
-    TcpServer::TcpServer(EventBase* bases): base_(bases->allocBase()),bases_(bases), listen_channel_(nullptr), createcb_([](){return TcpConnPtr(new TcpConn);})
+    TcpServer::TcpServer(EventBases* bases): base_(bases->allocBase()),bases_(bases), listen_channel_(nullptr), createcb_([](){return TcpConnPtr(new TcpConn);})
     {
         
     }

@@ -9,13 +9,32 @@
 #include "conn.h"
 #include "status.h"
 #include "file.h"
+#include "http.h"
 using namespace std;
 using namespace rasp;
 
 int main(int argc, char** argv)
 {
      EventBase base;
-     TcpServerPtr svr = TcpServer::startServer(&base, "192.168.31.28", 4748);
+     HttpServer hserver(&base);
+     int r = hserver.bind("192.168.31.28",8081);
+     exitif(r, "bind failed");
+     hserver.onGet("/tonytest", [](const HttpConnPtr& con)
+     {
+         //string v = con.getRequest().getVersion();
+         //HttpResponse resp;
+         //resp.getBody1() = "hello worldxxx";
+         con.getResponse().getBody1() = "hello world";
+         con.sendResponse(con.getResponse());
+         //con.sendFile("../web/tonytest.html");
+     });
+    hserver.onConnState([](const TcpConnPtr& con){
+        if(con->getState() == TcpConn::Connected)
+        {
+            info("a clinet connect to server!");
+        }
+    });
+     /*TcpServerPtr svr = TcpServer::startServer(&base, "192.168.31.28", 4748);
      svr->onConnRead([](const TcpConnPtr con){
          info("%s",con->getInput().data());
          info("input buffer size %d",con->getInput().size());
@@ -31,7 +50,7 @@ int main(int argc, char** argv)
         }
     });
      base.loop();
-     return 0;
+     return 0;*/
 
     base.loop();
 }

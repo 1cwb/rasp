@@ -28,7 +28,7 @@ namespace rasp
         {
             return Complete;
         }
-        if(!contentLen_)
+        if(!contentLen_) //contentLen = 0
         {
             const char* p = buf.begin();
             Slice req;
@@ -95,16 +95,16 @@ namespace rasp
     }
 
     //HttpRequest
-    int HttpRequest::encode(Buffer& buf)
+    int HttpRequest::encode(Buffer& buf) //encode for request for client
     {
-        size_t osz = buf.size();
+        size_t osz = buf.size();//get original size of buf
         char conlen[1024];
         char reqln[4096];
         memset(conlen, 0, sizeof(conlen));
         memset(reqln, 0, sizeof(reqln));
-        snprintf(reqln, sizeof(reqln), "%s %s %s\r\n", method.c_str(), query_uri.c_str(), version.c_str());
-        buf.append(reqln);
-        for(auto &hd : headers)
+        snprintf(reqln, sizeof(reqln), "%s %s %s\r\n", method.c_str(), query_uri.c_str(), version.c_str()); //first line :GET / HTTP1.1
+        buf.append(reqln); //add first line 
+        for(auto &hd : headers) //get headrs: host:xxxx.com\r\n ...
         {
             buf.append(hd.first).append(": ").append(hd.second).append("\r\n");
         }
@@ -114,26 +114,27 @@ namespace rasp
         buf.append("\r\n").append(getBody());
         return buf.size() - osz;
     }
-    HttpMsg::Result HttpRequest::tryDecode(Slice buf, bool copyBody)
+    HttpMsg::Result HttpRequest::tryDecode(Slice buf, bool copyBody)//for server
     {
+        size_t i = 0;
         Slice ln1;
-        Result r = tryDecode_(buf, copyBody, &ln1);
+        Result r = tryDecode_(buf, copyBody, &ln1);//get head and first line
         if(ln1.size())
         {
-            method = ln1.eatWord();
-            query_uri = ln1.eatWord();
-            version = ln1.eatWord();
+            method = ln1.eatWord();//get method: GET/POST/XXX
+            query_uri = ln1.eatWord(); //get query_uri: /
+            version = ln1.eatWord(); //get version: HTTP1.1
             if(query_uri.size() == 0 || query_uri[0] != '/')
             {
                 error("query uri '%.*s' should begin with /", (int) query_uri.size(), query_uri.data());
                 return Error;
             }
-            for(size_t i = 0; i < query_uri.size(); i++)
+            for(i = 0; i < query_uri.size(); i++)
             {
-                if(query_uri[i] == '?')
+                if(query_uri[i] == '?')// find "?" in query_uri::::Ex: http://www.it315.org/counter.jsp?name=zhangsan&password=123
                 {
-                    uri = Slice(query_uri.data(), i);
-                    Slice qs = Slice(query_uri.data() + i + 1, query_uri.size() - i - 1);//skip ?
+                    uri = Slice(query_uri.data(), i); //get first data to data+i for uri
+                    Slice qs = Slice(query_uri.data() + i + 1, query_uri.size() - i - 1);//skip ? and get args
                     size_t c, kb, ke, vb, ve;
                     c = kb = ke = vb = ve = 0;
                     while (c < qs.size())
@@ -165,24 +166,24 @@ namespace rasp
                     }
                     break;
                 }
-                /*if(i == query_uri.size())
-                {
-                    uri = query_uri;
-                }*/
+            }
+            if(i == query_uri.size())
+            {
+                uri = query_uri;
             }
         }
         return r;
     }
-    int HttpResponse::encode(Buffer& buf)
+    int HttpResponse::encode(Buffer& buf) //for server
     {
         size_t osz = buf.size();
         char conlen[1024];
         char statusln[1024];
         memset(conlen, 0, sizeof(conlen));
         memset(statusln, 0, sizeof(statusln));
-        snprintf(statusln, sizeof(statusln), "%s %d %s\r\n", version.c_str(), status, statusWord.c_str());
+        snprintf(statusln, sizeof(statusln), "%s %d %s\r\n", version.c_str(), status, statusWord.c_str());//HTTP/1.1 200 OK\r\n
         buf.append(statusln);
-        for(auto &hd : headers)
+        for(auto &hd : headers) //append head
         {
             buf.append(hd.first).append(": ").append(hd.second).append("\r\n");
         }
@@ -192,7 +193,7 @@ namespace rasp
         buf.append("\r\n").append(getBody());
         return buf.size() - osz;
     }
-    HttpMsg::Result HttpResponse::tryDecode(Slice buf, bool copyBody)
+    HttpMsg::Result HttpResponse::tryDecode(Slice buf, bool copyBody)//for client
     {
         Slice ln1;
         Result r = tryDecode_(buf, copyBody, &ln1);
@@ -219,9 +220,9 @@ namespace rasp
         {
             resp.setStatus(500, st.msg());
         }
-        else
+        else //st.code == 0
         {
-            resp.body2 = cont;
+            resp.getBody2() = cont;
         }
         sendResponse();
     }
@@ -229,16 +230,18 @@ namespace rasp
     {
         if(tcp->isClient())
         {
-            tcp->getInput().consume(getResponse().getByte());
+            tcp->getInput().consume(getResponse().getByte()); //client use respocse buffer
             getResponse().clear();
         }
         else
         {
-            tcp->getInput().consume(getRequest().getByte());
+            tcp->getInput().consume(getRequest().getByte()); //server use request buffer
             getRequest().clear();
         }
     }
-    void HttpConnPtr::onHttpMsg(const HttpCallBack& cb) const
+    //register callback
+    // tcp->handleRead() -> onRead() -> http(con)->handleRead-> (param HttpCallBack function cb)
+    void HttpConnPtr::onHttpMsg(const HttpCallBack& cb) const 
     {
         tcp->onRead([cb](const TcpConnPtr& con)
         {
@@ -264,7 +267,7 @@ namespace rasp
             }
             else if(r == HttpMsg::Complete)
             {
-                info("http request: %s %s %s", req.method.c_str(), req.query_uri.c_str(), req.version.c_str());
+                info("http request: %s %s %s", req.getMethod().c_str(), req.getQureUri().c_str(), req.getVersion().c_str());
                 trace("http request:\n%.*s", (int) tcp->input_.size(), tcp->input_.data());
                 cb(*this);
             }
@@ -280,16 +283,49 @@ namespace rasp
             }
             if(r == HttpMsg::Complete)
             {
-                info("http response: %d %s", resp.status, resp.statusWord.c_str());
+                info("http response: %d %s", resp.getStatus(), resp.getStatusWord().c_str());
                 trace("http response:\n%.*s", (int) tcp->input_.size(), tcp->input_.data());
-                cb(tcp);
+                cb(*this);
             }
         }
-        
     }
     void HttpConnPtr::logOutput(const char* title) const
     {
         Buffer &o = tcp->getOutput();
-        trace("%s:\n&.*s", title, (int)o.size(), o.data());
+        info("%s:\n%.*s", title, (int)o.size(), o.data());
+    }
+
+    //HttpServer
+    HttpServer::HttpServer(EventBases* bases) : TcpServer(bases)
+    {
+        defcb_ = [](const HttpConnPtr& con) //if not found it will call defcb_
+        {
+            HttpResponse & resp = con.getResponse();
+            resp.getStatus() = 404;
+            resp.getStatusWord() = "Not Found";
+            resp.getBody1() = "Not Found";
+            con.sendResponse();
+        };
+        conncb_ = [] {return TcpConnPtr(new TcpConn);}; //default conncb_
+        onConnCreate([this]() //this callback use in tcpserver
+        {
+            HttpConnPtr hcon(conncb_());
+            hcon.onHttpMsg([this](const HttpConnPtr& hcon)
+            {
+                HttpRequest& req = hcon.getRequest();
+                auto p = cbs_.find(req.getMethod());
+                if(p != cbs_.end())
+                {
+                    auto p2 = p->second.find(req.getUri());
+                    if(p2 != p->second.end())
+                    {
+                        p2->second(hcon);
+                        return;
+                    }
+                }
+                defcb_(hcon);
+            });
+            return hcon;
+        });
     }
 }

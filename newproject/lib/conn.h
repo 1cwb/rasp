@@ -102,7 +102,7 @@ namespace rasp
     };
     struct TcpServer : private noncopyable
     {
-        TcpServer(EventBase* bases);
+        TcpServer(EventBases* bases);
         int bind(const std::string& host, short port, bool reusePort=false);
         static TcpServerPtr startServer(EventBase* bases, const std::string& host, short port, bool reusePort = false);
         ~TcpServer() {if(listen_channel_){delete listen_channel_;}}
