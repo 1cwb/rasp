@@ -61,7 +61,7 @@ namespace rasp
         void refreshNearest(const TimerId* tid = nullptr);
         void repeatableTimeout(TimerRepeatable* tr);
 
-        EventBase& exit() {exit_ = true; wakeup(); return *base_;}
+        EventBase& exit() {exit_ = true;tasks_.exit(); wakeup(); return *base_;}
         bool exited() {return exit_;}
         void safeCall(Task&& task) {tasks_.push(move(task)); wakeup();}
         void loop();
@@ -448,7 +448,10 @@ namespace rasp
             getBase()->imp_->reconnectConns_.erase(con);
             connect(getBase(), destHost_, (short)destPort_, connectTimeout_, localIp_);
         });
-        delete channel_;
-        channel_ = nullptr;
+        if(channel_)
+        {
+            delete channel_;
+            channel_ = nullptr;
+        }
     }
 }

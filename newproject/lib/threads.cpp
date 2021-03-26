@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <utility>
 #include <iostream>
+#include "port_posix.h"
 
 using namespace std;
 
@@ -12,6 +13,7 @@ namespace rasp
     ThreadPool::ThreadPool(int threads, int taskCapacity, bool start) :
     tasks_(taskCapacity), threads_(threads)
     {
+        cout << "thread poll construct" << endl;
         if(start)
         {
             this->start();

@@ -233,9 +233,12 @@ namespace rasp
             raspUnregisterIdle(getBase(), idle);
         }
         readcb_ = writablecb_ = statecb_ = nullptr;
-        Channel* ch = channel_;
-        channel_ = nullptr;
-        delete ch;
+        if(channel_)
+        {
+            Channel* ch = channel_;
+            channel_ = nullptr;
+            delete ch; //delete channel will destoru TcpConnPtr
+        }
     }
     void TcpConn::connect(EventBase* base, const std::string& host, short port, int timeout, const std::string& localip)
     {

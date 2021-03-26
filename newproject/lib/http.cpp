@@ -245,7 +245,7 @@ namespace rasp
     {
         tcp->onRead([cb](const TcpConnPtr& con)
         {
-            HttpConnPtr hcon(con);
+            HttpConnPtr hcon(con); //if this is server, it need send data to diffrent connects
             hcon.handleRead(cb);
         });
     }
@@ -269,6 +269,7 @@ namespace rasp
             {
                 info("http request: %s %s %s", req.getMethod().c_str(), req.getQureUri().c_str(), req.getVersion().c_str());
                 trace("http request:\n%.*s", (int) tcp->input_.size(), tcp->input_.data());
+                cout << "this ====" << this << endl;
                 cb(*this);
             }
         }

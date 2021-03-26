@@ -101,6 +101,8 @@ namespace rasp
     {
         typedef std::function<void (const HttpConnPtr& )> HttpCallBack;
         HttpConnPtr(const TcpConnPtr& con): tcp(con) {}
+        HttpConnPtr(){};
+        void bindTcpConnPtr(const TcpConnPtr& con){tcp = con;}
         operator TcpConnPtr() const {return tcp;}
         TcpConn* operator->() const {return tcp.get();}
         bool operator<(const HttpConnPtr& con) const {return tcp < con.tcp;}
