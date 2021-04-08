@@ -63,35 +63,6 @@ namespace rasp
         }
         
     }
-    
-    void TcpConn::onMsg(CodecBase* codec, const MsgCallBack& cb)
-    {
-        assert(!readcb_);
-        codec_.reset(codec);
-        onRead([cb](const TcpConnPtr& con){
-            int r = 1;
-            while(r)
-            {
-                Slice msg;
-                r = con->codec_->tryDecode(con->getInput(), msg);
-                if(r < 0)
-                {
-                    con->channel_->close();
-                }
-                else if(r > 0)
-                {
-                    trace("a msg decoded. origin len %d msg len %ld", r, msg.size());
-                    cb(con, msg);
-                    con->getInput().consume(r);
-                }
-            }
-        });
-    }
-    void TcpConn::sendMsg(Slice msg)
-    {
-        codec_->encode(msg, getOutput());
-        sendOutput();
-    }
     void TcpConn::close()
     {
         if(channel_)
@@ -415,10 +386,6 @@ namespace rasp
                 if(readcb_)
                 {
                     con->onRead(readcb_);
-                }
-                if(msgcb_)
-                {
-                    con->onMsg(codec_->clone(), msgcb_);
                 }
             };
             if(b == base_)

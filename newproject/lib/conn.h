@@ -61,11 +61,6 @@ namespace rasp
         //tcp free call
         void addIdleCB(int idle, const TcpCallBack& cb);
 
-        //msg callback, just use one of onMsg and onRead
-        void onMsg(CodecBase* codec, const MsgCallBack& cb);
-        //send msg
-        void sendMsg(Slice msg);
-
         void close();
         //set reconnect time, -1:never reconnect, 0:reconnect now, other value: wait ms on connect
         void setReconnectInterval(int milli){reconnectInterval_ = milli;}
@@ -88,7 +83,6 @@ namespace rasp
         std::string destHost_, localIp_;
         int destPort_, connectTimeout_, reconnectInterval_;
         int64_t connectedTime_;
-        std::unique_ptr<CodecBase> codec_;
         void handleRead(const TcpConnPtr& con);
         void handleWrite(const TcpConnPtr& con);
         ssize_t isend(const char* buf, ssize_t len);
@@ -110,18 +104,14 @@ namespace rasp
         EventBase* getBase() { return base_; }
         void onConnCreate(const std::function<TcpConnPtr()>& cb) {createcb_ = cb;}
         void onConnState(const TcpCallBack& cb){statecb_ = cb;}
-        void onConnRead(const TcpCallBack& cb){readcb_ = cb; assert(!msgcb_);}
-        //conflit with onConnRead callback
-        void onConnMsg(CodecBase* codec, const MsgCallBack& cb) { codec_.reset(codec); msgcb_ = cb; assert(!readcb_); }
+        void onConnRead(const TcpCallBack& cb){readcb_ = cb;}
     private:
         EventBase* base_;
         EventBases* bases_;
         Ip4Addr addr_;
         Channel* listen_channel_;
         TcpCallBack statecb_, readcb_;
-        MsgCallBack msgcb_;
         std::function<TcpConnPtr()> createcb_;
-        std::unique_ptr<CodecBase> codec_;
         void handleAccept();
     };
 }
