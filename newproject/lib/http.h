@@ -19,7 +19,7 @@ namespace rasp
         HttpMsg() {HttpMsg::clear();}
         virtual ~HttpMsg() {}
         virtual int encode(Buffer& buf) = 0;
-        virtual HttpMsg::Result tryDecode(Slice buf, bool copyBody = true) = 0;
+        virtual HttpMsg::Result tryDecode(Slice buf, bool copyBody = true);
         virtual void clear();
 
         std::string getHeader(const std::string& n){return getValueFromMap_(headers, n);}

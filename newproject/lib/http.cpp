@@ -129,7 +129,7 @@ namespace rasp
                 error("query uri '%.*s' should begin with /", (int) query_uri.size(), query_uri.data());
                 return Error;
             }
-            for(i = 0; i < query_uri.size(); i++)
+            for(i = 0; i <= query_uri.size(); i++)
             {
                 if(query_uri[i] == '?')// find "?" in query_uri::::Ex: http://www.it315.org/counter.jsp?name=zhangsan&password=123
                 {
@@ -166,10 +166,10 @@ namespace rasp
                     }
                     break;
                 }
-            }
-            if(i == query_uri.size())
-            {
-                uri = query_uri;
+                if(i == query_uri.size())
+                {
+                    uri = query_uri;
+                }
             }
         }
         return r;
