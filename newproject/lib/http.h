@@ -25,17 +25,15 @@ namespace rasp
         std::string getHeader(const std::string& n){return getValueFromMap_(headers, n);}
         std::map<std::string, std::string>& getHeaders(){return headers;}
 
-        std::string& getBody1() {return body;}
-        Slice& getBody2() {return body2;}
-        Slice getBody() {return body2.size() ? body2 : Slice(body);}
-        
+        Slice getBody() {return Slice(body);}
+        std::string& getBodys() { return body; }
+
         std::string& getVersion() {return version;}
         size_t getContentLen() {return contentLen_;}
         int getByte() {return scanned_;}
     protected:
         std::map<std::string, std::string> headers;
         std::string body;
-        Slice body2;
         std::string version;
 
         bool complete_;
@@ -60,6 +58,7 @@ namespace rasp
             uri = "";
         }
         std::map<std::string, std::string>& getArgs() {return args;}
+        std::string getArg(const std::string& n) { return getValueFromMap_(args, n); }
         std::string& getMethod() {return method;}
         std::string& getUri() {return uri;}
         std::string& getQureUri() {return query_uri;}
@@ -118,6 +117,7 @@ namespace rasp
             logOutput("http req");
             clearData();
             tcp->sendOutput();
+
         }
         void sendResponse(HttpResponse& resp) const //for server
         {

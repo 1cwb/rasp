@@ -11,7 +11,7 @@ export GLOBAL_CFLAGS := -g -Wall -fno-elide-constructors -std=c++11
 
 # 静态链接库
 export GLOBAL_LDFLAGS :=
-export GLOBAL_LDLIBS := -l pthread
+export GLOBAL_LDLIBS := -l pthread -latomic
 
 export GLOBAL_OUTPUT_OBJS := $(GLOBAL_TOP_PATH)objs
 

@@ -14,14 +14,21 @@ using namespace rasp;
 int main(int argc, char** argv)
 {   
     EventBase base;
-    TcpConnPtr con = TcpConn::createConnection(&base, "192.168.31.162",8081);
+    TcpConnPtr con = TcpConn::createConnection(&base, "m2.5y1rsxmzh.club",80);
+    //TcpConnPtr con = TcpConn::createConnection(&base, "www.baidu.com", 80);
     HttpConnPtr http(con);
     con->onState([&http](const TcpConnPtr& con){
         if(con->getState() == TcpConn::Connected)
         {
             http.getRequest().getMethod() = "GET";
-            http.getRequest().getQureUri() = "/tonytest";
-            //http.getRequest().getHeaders()["Host"] = "cdn3.61gp.xyz";
+            http.getRequest().getQureUri() = "/pw";
+            http.getRequest().getHeaders()["Host"] = "m2.5y1rsxmzh.club";
+
+            http.getRequest().getHeaders()["Referrer Policy"] = "strict - origin - when - cross - origin";
+            http.getRequest().getHeaders()["Accept"] = "text / html, application / xhtml + xml, application / xml; q = 0.9, image / avif, image / webp, image / apng, */*;q=0.8,application/signed-exchange;v=b3;q=0.9";
+            http.getRequest().getHeaders()["Accept-Encoding"] = "gzip, deflate";
+            //http.getRequest().getHeaders()["Referer"] = "http://m2.5y1rsxmzh.club/";
+            
             http.sendRequest();
         }
     });

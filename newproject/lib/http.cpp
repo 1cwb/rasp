@@ -11,7 +11,6 @@ namespace rasp
     {
         headers.clear();
         body.clear();
-        body2.clear();
         complete_ = 0;
         contentLen_ = 0;
         scanned_ = 0;
@@ -84,10 +83,6 @@ namespace rasp
             {
                 body.assign(buf.data() + scanned_, contentLen_);
             }
-            else
-            {
-                body2 = Slice(buf.data() + scanned_, contentLen_);
-            }
             complete_ = true;
             scanned_ += contentLen_;
         }
@@ -112,6 +107,7 @@ namespace rasp
         snprintf(conlen, sizeof(conlen), "Content-Length: %lu\r\n", getBody().size());
         buf.append(conlen);
         buf.append("\r\n").append(getBody());
+        getBodys().clear();
         return buf.size() - osz;
     }
     HttpMsg::Result HttpRequest::tryDecode(Slice buf, bool copyBody)//for server
@@ -222,7 +218,7 @@ namespace rasp
         }
         else //st.code == 0
         {
-            resp.getBody2() = cont;
+            resp.getBodys() = cont;
         }
         sendResponse();
     }
@@ -304,7 +300,7 @@ namespace rasp
             HttpResponse & resp = con.getResponse();
             resp.getStatus() = 404;
             resp.getStatusWord() = "Not Found";
-            resp.getBody1() = "Not Found";
+            resp.getBodys() = "<html>\r\n<body>\r\n<h2> NOT FOND </ h2>\r\n<p> welcome to use this web </p>\r\n</body> \r\n</html>\r\n";
             con.sendResponse();
         };
         conncb_ = [] {return TcpConnPtr(new TcpConn);}; //default conncb_

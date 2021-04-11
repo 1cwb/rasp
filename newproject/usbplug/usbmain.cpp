@@ -15,53 +15,49 @@ using namespace rasp;
 
 int main(int argc, char** argv)
 {
-     EventBase base;
-     HttpServer hserver(&base);
-     int r = hserver.bind("192.168.31.162",8081);
-     exitif(r, "bind failed");
-     hserver.onGet("/tonytest", [](const HttpConnPtr& con)
-     {
-         //string v = con.getRequest().getVersion();
-         //HttpResponse resp;
-         //resp.getBody1() = "hello worldxxx";
-         //con.getResponse().getBody1() = "sha bi,,,,,,,";
-         
-         //con.sendResponse(con.getResponse());
-         //con.getResponse().getHeaders()["Content-type"] = "image/jpeg";
-         con.sendFile("../web/test.html");
-         cout << "con addr" << &con << endl;
-     });
-     hserver.onRequest("GET", "/123.jpg", [](const HttpConnPtr& con)
-     {
-         con.sendFile("../web/123.jpg");
-         cout << "con addr" << &con << endl;
-     });
-    hserver.onConnState([&hserver](const TcpConnPtr& con){
+    atomic<int> clientNum(0);
+    MultiBase base(10);
+    TcpServerPtr tcpserver = TcpServer::startServer(base.allocBase(), "192.168.3.150", 4746);
+    tcpserver->onConnState([](const TcpConnPtr& con) {
+        if (con->getState() == TcpConn::Connected)
+            info("a tcp clinet connect!!!!!");
+        });
+
+    HttpServer hserver(base.allocBase());
+    int r = hserver.bind("192.168.3.150",8081);
+    exitif(r, "bind failed");
+    hserver.onRequest("GET", "/", [&](const HttpConnPtr& con)
+    {
+        con.sendFile("../web/index.html");
+    });
+    hserver.onRequest("GET", "/getNum", [&](const HttpConnPtr& con)
+    {
+            info("server GetNum:");
+            HttpResponse& resp = con.getResponse();
+            resp.getStatus() = 200;
+            resp.getStatusWord() = "OK";
+            resp.getBodys() = util::format("<html>\r\n<body>\r\n<h2> %d </ h2>\r\n<p> welcome to use this web </p>\r\n</body> \r\n</html>\r\n", (const int)clientNum);
+
+            con.sendResponse();
+    });
+    hserver.onRequest("GET", "/123.jpg", [&](const HttpConnPtr& con)
+    {
+            info("server GetJpg:");
+            con.sendFile("../web/123.jpg");
+    });
+    hserver.onConnState([&](const TcpConnPtr& con){
         if(con->getState() == TcpConn::Connected)
         {
-            info("a clinet connect to server!");
+            clientNum++;
+            info("a clinet connect to server!, the total connectClinet is %d", (const int)clientNum);
             //con->addIdleCB(20, [](const TcpConnPtr& c){c->close();});
             //info("total client is %d",hserver.getBase()->);
         }
-    });
-     /*TcpServerPtr svr = TcpServer::startServer(&base, "192.168.31.28", 4748);
-     svr->onConnRead([](const TcpConnPtr con){
-         info("%s",con->getInput().data());
-         info("input buffer size %d",con->getInput().size());
-         //if(con->getInput().size() == 0)
-         //con->getInput().clear();
-         //con->send(con->getInput());
-         //con->sendOutput();
-     });
-     svr->onConnState([&](const TcpConnPtr& con) { //200ms后关闭连接
-        if (con->getState() == TcpConn::State::Connected)
+        else if (con->getState() == TcpConn::Closed)
         {
-            info("%s connected",con->peer_.toString().c_str());
+            clientNum --;
+            info("a clinet connect to server!, the total connectClinet is %d", (const int)clientNum);
         }
     });
-     base.loop();
-     return 0;*/
-    //base.runAfter(10000, [&](){base.exit();});
-    
     base.loop();
 }
