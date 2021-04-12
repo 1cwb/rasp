@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include "slice.h"
 #include "port_posix.h"
-
+#include <iostream>
 namespace rasp
 {
     struct Slice;
@@ -40,8 +40,8 @@ namespace rasp
     struct Buffer
     {
         Buffer(): buf_(nullptr), b_(0), e_(0), cap_(0), exp_(512){}
-        ~Buffer() {delete [] buf_;}
-        void clear(){delete [] buf_, buf_ = nullptr; cap_ = 0; b_ = e_ = 0;}
+        ~Buffer() {if(buf_){delete [] buf_;}}
+        void clear(){if(buf_){delete [] buf_, buf_ = nullptr;} cap_ = 0; b_ = e_ = 0;}
         size_t size() const {return e_ - b_;}
         bool empty() const {return e_ == b_;}
         char* data() const {return buf_ + b_;}

@@ -3,7 +3,7 @@
 #include <map>
 #include "conn.h"
 #include "slice.h"
-
+#include <atomic>
 namespace rasp
 {
     struct HttpMsg //base http
@@ -12,11 +12,10 @@ namespace rasp
         {
             Error,
             Complete,
-            NotCompelete,
-            Continue100
+            NotCompelete
         };
 
-        HttpMsg() {HttpMsg::clear();}
+        HttpMsg():bchunked(false) {HttpMsg::clear();}
         virtual ~HttpMsg() {}
         virtual int encode(Buffer& buf) = 0;
         virtual HttpMsg::Result tryDecode(Slice buf, bool copyBody = true) = 0;
@@ -30,7 +29,6 @@ namespace rasp
 
         std::string& getVersion() {return version;}
         size_t getContentLen() {return contentLen_;}
-        int getByte() {return scanned_;}
     protected:
         std::map<std::string, std::string> headers;
         std::string body;
@@ -38,9 +36,9 @@ namespace rasp
 
         bool complete_;
         size_t contentLen_;
-        size_t scanned_;
         Result tryDecode_(Slice buf, bool copyBody, Slice* line1);
         std::string getValueFromMap_(std::map<std::string, std::string> &m, const std::string &n);
+        bool bchunked;
     };
 
     struct HttpRequest : public HttpMsg
@@ -117,7 +115,6 @@ namespace rasp
             logOutput("http req");
             clearData();
             tcp->sendOutput();
-
         }
         void sendResponse(HttpResponse& resp) const //for server
         {

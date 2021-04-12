@@ -13,7 +13,6 @@ namespace rasp
         body.clear();
         complete_ = 0;
         contentLen_ = 0;
-        scanned_ = 0;
         version = "HTTP/1.1";
     }
     std::string HttpMsg::getValueFromMap_(std::map<std::string, std::string> &m, const std::string &n)
@@ -23,6 +22,8 @@ namespace rasp
     }
     HttpMsg::Result HttpMsg::tryDecode_(Slice buf, bool copyBody, Slice* line1)
     {
+        std::cout << buf.toString() <<std::endl;
+        size_t mscanned = 0;
         if(complete_)
         {
             return Complete;
@@ -31,14 +32,14 @@ namespace rasp
         {
             const char* p = buf.begin();
             Slice req;
-            while(buf.size() >= scanned_ + 4) //\r\n\r\n this is head end
+            while(buf.size() >= mscanned + 4) //\r\n\r\n this is head end
             {
-                if(p[scanned_] == '\r' && memcmp(p + scanned_, "\r\n\r\n", 4) == 0)
+                if(p[mscanned] == '\r' && memcmp(p + mscanned, "\r\n\r\n", 4) == 0)
                 {
-                    req = Slice(p, p + scanned_); //get head and break
+                    req = Slice(p, p + mscanned); //get head and break
                     break;
                 }
-                scanned_ ++;
+                mscanned ++;
             }
             if(req.empty())
             {
@@ -52,6 +53,7 @@ namespace rasp
                 Slice ln = req.eatLine(); //get line
                 Slice k = ln.eatWord();   //get word
                 ln.trimSpace();           //skip space
+
                 if(k.size() && ln.size() && k.back() == ':')
                 {
                     for(size_t i = 0; i < k.size(); i++)
@@ -59,6 +61,7 @@ namespace rasp
                         ((char*)k.data())[i] = tolower(k[i]);
                     }
                     headers[k.sub(0, -1)] = ln; //no ":" get a map data like host -> www.xxx.com
+                    //cout << "headers["<<k.toString()<<"]" << "=" <<ln.toString() << endl;
                 }
                 else if(k.empty() && ln.empty() && req.empty())
                 {
@@ -70,21 +73,75 @@ namespace rasp
                     return Error;
                 }
             }
-            scanned_ += 4;
-            contentLen_ = atoi(getHeader("content-length").c_str());
-            if(buf.size() < contentLen_ + scanned_ && getHeader("Expect").size())
+            mscanned += 4;
+            if(getHeader("transfer-encoding") == "chunked")
             {
-                return Continue100;
+                bchunked = true;
+            }
+            if(bchunked)
+            {
+                req = Slice(buf.begin() + mscanned, buf.size() - mscanned);
+                if(req.size() > 0)
+                {
+                    mscanned += req.eatLine().size();
+                    req.eat(2);// \r\n
+                    mscanned += 2;
+                    Slice chunkedEnd = Slice(buf.end() - 7, buf.end());
+                    std::cout << chunkedEnd.toString()<< std::endl;
+                    if(chunkedEnd.toString().compare("\r\n0\r\n\r\n") == 0)
+                    {
+                        complete_ = true;
+                        bchunked = false;
+                        if(copyBody)
+                        {
+                            body.append(req.begin(), req.size() - 5);
+                            contentLen_ += (req.size() - 5);
+                            mscanned += contentLen_ + 5;
+                        }
+                        std::cout << body.size() << std::endl;
+
+                        std::cout << body << std::endl;
+                    }
+                    else
+                    {
+                        body.append(req.begin(), req.size());
+                        contentLen_ += req.size();
+                    }
+                }
+            }
+            else
+            {
+                contentLen_ = atoi(getHeader("content-length").c_str());
+                if(!complete_ && buf.size() >= contentLen_ + mscanned)
+                {
+                    if(copyBody)
+                    {
+                        body.assign(buf.data() + mscanned, contentLen_);
+                    }
+                    complete_ = true;
+                    mscanned += contentLen_;
+                }
             }
         }
-        if(!complete_ && buf.size() >= contentLen_ + scanned_)
+        else if(bchunked)
         {
-            if(copyBody)
+            Slice chunkedEnd = Slice(buf.end() - 7, buf.end());
+            if(chunkedEnd.toString().compare("\r\n0\r\n\r\n") == 0)
             {
-                body.assign(buf.data() + scanned_, contentLen_);
+                complete_ = true;
+                bchunked = false;
+                if(copyBody)
+                {
+                    body.append(buf.begin(), buf.size() - 5);
+                    contentLen_ += (buf.size() - 5);
+                    mscanned += contentLen_ + 5;
+                }
             }
-            complete_ = true;
-            scanned_ += contentLen_;
+            else
+            {
+                body.append(buf.begin(), buf.size());
+                contentLen_ += buf.size();
+            }
         }
         return complete_ ? Complete : NotCompelete;
     }
@@ -226,12 +283,10 @@ namespace rasp
     {
         if(tcp->isClient())
         {
-            tcp->getInput().consume(getResponse().getByte()); //client use respocse buffer
             getResponse().clear();
         }
         else
         {
-            tcp->getInput().consume(getRequest().getByte()); //server use request buffer
             getRequest().clear();
         }
     }
@@ -257,15 +312,9 @@ namespace rasp
                 tcp->close();
                 return;
             }
-            if(r == HttpMsg::Continue100)
-            {
-                tcp->send("HTTP/1.1 100 Continue\r\n\r\n");
-            }
             else if(r == HttpMsg::Complete)
             {
-                info("http request: %s %s %s", req.getMethod().c_str(), req.getQureUri().c_str(), req.getVersion().c_str());
                 trace("http request:\n%.*s", (int) tcp->input_.size(), tcp->input_.data());
-                cout << "this ====" << this << endl;
                 cb(*this);
             }
         }
@@ -280,11 +329,12 @@ namespace rasp
             }
             if(r == HttpMsg::Complete)
             {
-                info("http response: %d %s", resp.getStatus(), resp.getStatusWord().c_str());
+                //info("http response: %d %s", resp.getStatus(), resp.getStatusWord().c_str());
                 trace("http response:\n%.*s", (int) tcp->input_.size(), tcp->input_.data());
                 cb(*this);
             }
         }
+        tcp->getInput().clear();
     }
     void HttpConnPtr::logOutput(const char* title) const
     {
