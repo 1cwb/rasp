@@ -22,7 +22,6 @@ namespace rasp
     }
     HttpMsg::Result HttpMsg::tryDecode_(Slice buf, bool copyBody, Slice* line1)
     {
-        std::cout << buf.toString() <<std::endl;
         size_t mscanned = 0;
         if(complete_)
         {
@@ -45,7 +44,7 @@ namespace rasp
             {
                 return NotCompelete;
             }
-
+            cout <<req.toString()<<endl;
             *line1 = req.eatLine();//get first line
             while (req.size())
             {
@@ -87,7 +86,6 @@ namespace rasp
                     req.eat(2);// \r\n
                     mscanned += 2;
                     Slice chunkedEnd = Slice(buf.end() - 7, buf.end());
-                    std::cout << chunkedEnd.toString()<< std::endl;
                     if(chunkedEnd.toString().compare("\r\n0\r\n\r\n") == 0)
                     {
                         complete_ = true;
@@ -98,9 +96,6 @@ namespace rasp
                             contentLen_ += (req.size() - 5);
                             mscanned += contentLen_ + 5;
                         }
-                        std::cout << body.size() << std::endl;
-
-                        std::cout << body << std::endl;
                     }
                     else
                     {
@@ -111,6 +106,7 @@ namespace rasp
             }
             else
             {
+                
                 contentLen_ = atoi(getHeader("content-length").c_str());
                 if(!complete_ && buf.size() >= contentLen_ + mscanned)
                 {

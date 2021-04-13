@@ -41,7 +41,23 @@ namespace rasp
     {
         Buffer(): buf_(nullptr), b_(0), e_(0), cap_(0), exp_(512){}
         ~Buffer() {if(buf_){delete [] buf_;}}
-        void clear(){if(buf_){delete [] buf_, buf_ = nullptr;} cap_ = 0; b_ = e_ = 0;}
+        void clear()
+        {
+            if(cap_ >= 0x800000) //8M
+            {
+                if(buf_)
+                {
+                    delete [] buf_; buf_ = nullptr;
+                } 
+                cap_ = 0; 
+                b_ = e_ = 0;
+            }
+            else
+            {
+                memset(buf_, 0, cap_);
+                b_ = e_ = 0;
+            }
+        }
         size_t size() const {return e_ - b_;}
         bool empty() const {return e_ == b_;}
         char* data() const {return buf_ + b_;}
