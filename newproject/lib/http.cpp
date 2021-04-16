@@ -44,7 +44,6 @@ namespace rasp
             {
                 return NotCompelete;
             }
-            cout <<req.toString()<<endl;
             *line1 = req.eatLine();//get first line
             while (req.size())
             {
@@ -106,7 +105,6 @@ namespace rasp
             }
             else
             {
-                
                 contentLen_ = atoi(getHeader("content-length").c_str());
                 if(!complete_ && buf.size() >= contentLen_ + mscanned)
                 {
@@ -165,6 +163,7 @@ namespace rasp
     }
     HttpMsg::Result HttpRequest::tryDecode(Slice buf, bool copyBody)//for server
     {
+        cout << buf.toString() <<endl;
         size_t i = 0;
         Slice ln1;
         Result r = tryDecode_(buf, copyBody, &ln1);//get head and first line
@@ -178,6 +177,7 @@ namespace rasp
                 error("query uri '%.*s' should begin with /", (int) query_uri.size(), query_uri.data());
                 return Error;
             }
+            cout <<query_uri<<endl;
             for(i = 0; i <= query_uri.size(); i++)
             {
                 if(query_uri[i] == '?')// find "?" in query_uri::::Ex: http://www.it315.org/counter.jsp?name=zhangsan&password=123
@@ -221,6 +221,11 @@ namespace rasp
                 }
             }
         }
+        /*cout << uri <<endl;
+        for(auto& t : args)
+        {
+            cout <<t.first << "=" <<t.second <<endl;
+        }*/
         return r;
     }
     int HttpResponse::encode(Buffer& buf) //for server
@@ -240,6 +245,7 @@ namespace rasp
         snprintf(conlen, sizeof(conlen), "Content-Length: %lu\r\n", getBody().size());
         buf.append(conlen);
         buf.append("\r\n").append(getBody());
+        getBodys().clear();
         return buf.size() - osz;
     }
     HttpMsg::Result HttpResponse::tryDecode(Slice buf, bool copyBody)//for client
@@ -335,7 +341,7 @@ namespace rasp
     void HttpConnPtr::logOutput(const char* title) const
     {
         Buffer &o = tcp->getOutput();
-        info("%s:\n%.*s", title, (int)o.size(), o.data());
+        trace("%s:\n%.*s", title, (int)o.size(), o.data());
     }
 
     //HttpServer
