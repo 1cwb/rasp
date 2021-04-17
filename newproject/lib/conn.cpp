@@ -12,7 +12,7 @@ namespace rasp
 
     void TcpConn::send(Buffer& buff)
     {
-        if(channel_)
+        if(channel_ && channel_->fd() >= 0)
         {
             //1.not shake hand.
             //2.send buff is full
@@ -44,7 +44,7 @@ namespace rasp
     }
     void TcpConn::send(const char* buff, ssize_t len)
     {
-        if(channel_)
+        if(channel_ && channel_->fd() >= 0)
         {
             if(output_.empty())
             {
