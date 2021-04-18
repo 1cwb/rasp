@@ -73,7 +73,7 @@ namespace rasp
         Buffer& append(const char* p){return append(p, strlen(p));}
         Buffer& append(const std::string p){return append(reinterpret_cast<const char*>(p.data()), p.size());}
         template<typename T> Buffer& appendValue(const T& v) {append((const char*)&v, sizeof(v)); return *this;}
-        Buffer& consume(size_t len) {b_ += len; if(size() == 0){clear();}return *this;}
+        Buffer& consume(size_t len) {b_ += len; if(size() == 0){std::cout << "call clear" << std::endl;clear();}return *this;}
         Buffer& absorb(Buffer& buf);
         void setSuggestSize(size_t sz) {exp_ = sz;}
         Buffer(const Buffer& b) { copyFrom(b); }

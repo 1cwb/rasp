@@ -13,6 +13,7 @@ namespace rasp
         body.clear();
         complete_ = 0;
         contentLen_ = 0;
+        scannedLen_ = 0;
         version = "HTTP/1.1";
     }
     std::string HttpMsg::getValueFromMap_(std::map<std::string, std::string> &m, const std::string &n)
@@ -42,6 +43,9 @@ namespace rasp
             }
             if(req.empty())
             {
+                cout << "Warning ,can not find head --->" <<endl;
+                mscanned = 0;
+                scannedLen_ = mscanned;
                 return NotCompelete;
             }
             *line1 = req.eatLine();//get first line
@@ -78,63 +82,103 @@ namespace rasp
             }
             if(bchunked)
             {
+                size_t contentScandLen = 0;
                 req = Slice(buf.begin() + mscanned, buf.size() - mscanned);
-                if(req.size() > 0)
+                const char* ptemp = req.begin();
+                Slice result;
+                while(req.size() >= contentScandLen + 7)
                 {
-                    mscanned += req.eatLine().size();
-                    req.eat(2);// \r\n
-                    mscanned += 2;
-                    Slice chunkedEnd = Slice(buf.end() - 7, buf.end());
-                    if(chunkedEnd.toString().compare("\r\n0\r\n\r\n") == 0)
+                    if(ptemp[contentScandLen] == '\r' && memcmp(ptemp + contentScandLen, "\r\n0\r\n\r\n", 7) == 0)
                     {
-                        complete_ = true;
-                        bchunked = false;
-                        if(copyBody)
-                        {
-                            body.append(req.begin(), req.size() - 5);
-                            contentLen_ += (req.size() - 5);
-                            mscanned += contentLen_ + 5;
-                        }
+                        result = Slice(ptemp, ptemp + contentScandLen); //get head and break
+                        break;
                     }
-                    else
+                    contentScandLen ++;
+                }
+                if(!result.empty())
+                {
+                    mscanned += contentScandLen + 7;
+                    complete_ = true;
+                    bchunked = false;
+                    if(copyBody)
                     {
-                        body.append(req.begin(), req.size());
+                        body.append(result.eatLine().eat(2).begin(), result.size());
+                        contentLen_ += (result.size());
+                        scannedLen_ = mscanned;
+                    }
+                }
+                else
+                {
+                    if(copyBody)
+                    {
+                        mscanned += req.size();
+                        body.append(req.eatLine().eat(2).begin(), req.size());
                         contentLen_ += req.size();
+                        scannedLen_ = mscanned;
                     }
                 }
             }
             else
             {
-                contentLen_ = atoi(getHeader("content-length").c_str());
-                if(!complete_ && buf.size() >= contentLen_ + mscanned)
+                if(getHeader("content-length").empty())
                 {
-                    if(copyBody)
-                    {
-                        body.assign(buf.data() + mscanned, contentLen_);
-                    }
+                    cout<< "the head file hav no content length"<<endl;
+                    contentLen_ = 0;
                     complete_ = true;
-                    mscanned += contentLen_;
+                    scannedLen_ = mscanned;
+                }
+                else
+                {
+                    contentLen_ = atoi(getHeader("content-length").c_str());
+                    if(!complete_ && buf.size() >= contentLen_ + mscanned)
+                    {
+                        if(copyBody)
+                        {
+                            body.assign(buf.data() + mscanned, contentLen_);
+                        }
+                        complete_ = true;
+                        mscanned += contentLen_;
+                        scannedLen_ = mscanned;
+                    }
                 }
             }
         }
         else if(bchunked)
         {
-            Slice chunkedEnd = Slice(buf.end() - 7, buf.end());
-            if(chunkedEnd.toString().compare("\r\n0\r\n\r\n") == 0)
+            size_t contentScandLen = 0;
+            Slice req = Slice(buf.begin() + mscanned, buf.size() - mscanned);
+            const char* ptemp = req.begin();
+            Slice result;
+            while(req.size() >= contentScandLen + 7)
             {
+                if(ptemp[contentScandLen] == '\r' && memcmp(ptemp + contentScandLen, "\r\n0\r\n\r\n", 7) == 0)
+                {
+                    result = Slice(ptemp, ptemp + contentScandLen); //get head and break
+                    break;
+                }
+                contentScandLen ++;
+            }
+            if(!result.empty())
+            {
+                mscanned += contentScandLen + 7;
                 complete_ = true;
                 bchunked = false;
                 if(copyBody)
                 {
-                    body.append(buf.begin(), buf.size() - 5);
-                    contentLen_ += (buf.size() - 5);
-                    mscanned += contentLen_ + 5;
+                    body.append(result.begin(), result.size());
+                    contentLen_ += (result.size());
+                    scannedLen_ = mscanned;
                 }
             }
             else
             {
-                body.append(buf.begin(), buf.size());
-                contentLen_ += buf.size();
+                if(copyBody)
+                {
+                    mscanned += req.size();
+                    body.append(req.begin(), req.size());
+                    contentLen_ += req.size();
+                    scannedLen_ = mscanned;
+                }
             }
         }
         return complete_ ? Complete : NotCompelete;
@@ -162,13 +206,21 @@ namespace rasp
         return buf.size() - osz;
     }
     HttpMsg::Result HttpRequest::tryDecode(Slice buf, bool copyBody)//for server
-    {
-        cout << buf.toString() <<endl;
+    {//cout << "---------start--------" << "\r\n" <<endl;
+        //cout << buf.toString() <<endl;
         size_t i = 0;
         Slice ln1;
         Result r = tryDecode_(buf, copyBody, &ln1);//get head and first line
+        if(r == NotCompelete)
+        {
+            return NotCompelete;
+        }
+       // cout << "xxxxxxxxx"<<buf.toString() <<endl;
         if(ln1.size())
         {
+            
+            //cout << ln1.toString() <<endl;
+            
             method = ln1.eatWord();//get method: GET/POST/XXX
             query_uri = ln1.eatWord(); //get query_uri: /
             version = ln1.eatWord(); //get version: HTTP1.1
@@ -177,7 +229,7 @@ namespace rasp
                 error("query uri '%.*s' should begin with /", (int) query_uri.size(), query_uri.data());
                 return Error;
             }
-            cout <<query_uri<<endl;
+            //cout <<"query"<<query_uri<<endl;
             for(i = 0; i <= query_uri.size(); i++)
             {
                 if(query_uri[i] == '?')// find "?" in query_uri::::Ex: http://www.it315.org/counter.jsp?name=zhangsan&password=123
@@ -221,8 +273,9 @@ namespace rasp
                 }
             }
         }
-        /*cout << uri <<endl;
-        for(auto& t : args)
+        //cout<<"uri:" << uri <<endl;
+        //cout << "-------end----------" << "\r\n" <<endl;
+        /*for(auto& t : args)
         {
             cout <<t.first << "=" <<t.second <<endl;
         }*/
@@ -316,8 +369,9 @@ namespace rasp
             }
             else if(r == HttpMsg::Complete)
             {
-                trace("http request:\n%.*s", (int) tcp->input_.size(), tcp->input_.data());
+                //info("http request:\n%.*s", (int) tcp->input_.size(), tcp->input_.data());
                 cb(*this);
+                tcp->getInput().consume(req.getScannedLen());
             }
         }
         else
@@ -334,9 +388,9 @@ namespace rasp
                 //info("http response: %d %s", resp.getStatus(), resp.getStatusWord().c_str());
                 trace("http response:\n%.*s", (int) tcp->input_.size(), tcp->input_.data());
                 cb(*this);
+                tcp->getInput().consume(resp.getScannedLen());
             }
         }
-        tcp->getInput().clear();
     }
     void HttpConnPtr::logOutput(const char* title) const
     {

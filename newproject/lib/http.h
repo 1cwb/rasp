@@ -29,6 +29,8 @@ namespace rasp
 
         std::string& getVersion() {return version;}
         size_t getContentLen() {return contentLen_;}
+
+        size_t getScannedLen(){return scannedLen_;}
     protected:
         std::map<std::string, std::string> headers;
         std::string body;
@@ -36,6 +38,7 @@ namespace rasp
 
         bool complete_;
         size_t contentLen_;
+        size_t scannedLen_;
         Result tryDecode_(Slice buf, bool copyBody, Slice* line1);
         std::string getValueFromMap_(std::map<std::string, std::string> &m, const std::string &n);
         bool bchunked;

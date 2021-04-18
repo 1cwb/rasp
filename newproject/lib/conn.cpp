@@ -25,7 +25,6 @@ namespace rasp
             {
                 ssize_t sended = isend(buff.begin(), buff.size());
                 buff.consume(sended);
-                info("tony test >>>>> buff.size is %d",buff.size());
             }
             //if send buff is full, add the data to output_ buff,and open write event
             if(buff.size()) // send buff is full
