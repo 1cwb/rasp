@@ -23,6 +23,9 @@ namespace rasp
     }
     HttpMsg::Result HttpMsg::tryDecode_(Slice buf, bool copyBody, Slice* line1)
     {
+        //cout << "[[ begin-------------------------------------"<<endl;
+        //cout <<buf.toString()<<endl;
+        //cout <<"-----------------------------------------end ]]"<<endl;
         size_t mscanned = 0;
         if(complete_)
         {
@@ -362,6 +365,7 @@ namespace rasp
         {
             HttpRequest& req = getRequest();
             HttpMsg::Result r = req.tryDecode(tcp->getInput());
+            tcp->getInput().consume(req.getScannedLen());
             if(r == HttpMsg::Error)
             {
                 tcp->close();
@@ -371,13 +375,13 @@ namespace rasp
             {
                 //info("http request:\n%.*s", (int) tcp->input_.size(), tcp->input_.data());
                 cb(*this);
-                tcp->getInput().consume(req.getScannedLen());
             }
         }
         else
         {
             HttpResponse& resp = getResponse();
             HttpMsg::Result r = resp.tryDecode(tcp->getInput());
+            tcp->getInput().consume(resp.getScannedLen());
             if(r == HttpMsg::Error)
             {
                 tcp->close();
@@ -388,7 +392,6 @@ namespace rasp
                 //info("http response: %d %s", resp.getStatus(), resp.getStatusWord().c_str());
                 trace("http response:\n%.*s", (int) tcp->input_.size(), tcp->input_.data());
                 cb(*this);
-                tcp->getInput().consume(resp.getScannedLen());
             }
         }
     }

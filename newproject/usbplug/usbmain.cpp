@@ -18,16 +18,16 @@ int main(int argc, char** argv)
 {
     atomic<int> clientNum(0);
     vector<string> webfile;
-    //MultiBase base(10);
-    EventBase base;
-    TcpServerPtr tcpserver = TcpServer::startServer(base.allocBase(), "192.168.3.123", 4746);
+    MultiBase base(10);
+    //EventBase base;
+    TcpServerPtr tcpserver = TcpServer::startServer(base.allocBase(), "192.168.31.162", 4746);
     tcpserver->onConnState([](const TcpConnPtr& con) {
         if (con->getState() == TcpConn::Connected)
             info("a tcp clinet connect!!!!!");
         });
 
     HttpServer hserver(base.allocBase());
-    int r = hserver.bind("192.168.3.123",8081);
+    int r = hserver.bind("192.168.31.162",8081);
     exitif(r, "bind failed");
     hserver.onRequest("GET", "/", [&](const HttpConnPtr& con)
     {
@@ -46,9 +46,7 @@ int main(int argc, char** argv)
             cout << "filename is " << fileName <<endl;
             hserver.onRequest("GET", "/login/"+fileName, [&](const HttpConnPtr& con)
             {
-                HttpResponse& resp = con.getResponse();
-                resp.getStatus() = 200;
-                resp.getStatusWord() = "OK";
+                con.getResponse().setStatus(200, "OK");
                 cout << "server send ========================== "<<"../web/login/"+fileName<<endl;
                 con.sendFile("../web/login/"+fileName);
             });
