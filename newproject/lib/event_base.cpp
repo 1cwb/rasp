@@ -447,6 +447,7 @@ namespace rasp
         getBase()->runAfter(interval, [this, con](){
             getBase()->imp_->reconnectConns_.erase(con);
             connect(getBase(), destHost_, (short)destPort_, connectTimeout_, localIp_);
+            cout <<"reconnect now~~" <<endl;
         });
         if(channel_)
         {

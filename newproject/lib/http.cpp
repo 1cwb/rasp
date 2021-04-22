@@ -23,9 +23,6 @@ namespace rasp
     }
     HttpMsg::Result HttpMsg::tryDecode_(Slice buf, bool copyBody, Slice* line1)
     {
-        //cout << "[[ begin-------------------------------------"<<endl;
-        //cout <<buf.toString()<<endl;
-        //cout <<"-----------------------------------------end ]]"<<endl;
         size_t mscanned = 0;
         if(complete_)
         {
@@ -46,7 +43,7 @@ namespace rasp
             }
             if(req.empty())
             {
-                cout << "Warning ,can not find head --->" <<endl;
+                //mscanned += 3;
                 mscanned = 0;
                 scannedLen_ = mscanned;
                 return NotCompelete;
@@ -66,7 +63,6 @@ namespace rasp
                         ((char*)k.data())[i] = tolower(k[i]);
                     }
                     headers[k.sub(0, -1)] = ln; //no ":" get a map data like host -> www.xxx.com
-                    //cout << "headers["<<k.toString()<<"]" << "=" <<ln.toString() << endl;
                 }
                 else if(k.empty() && ln.empty() && req.empty())
                 {
@@ -100,7 +96,7 @@ namespace rasp
                 }
                 if(!result.empty())
                 {
-                    mscanned += contentScandLen + 7;
+                    mscanned += contentScandLen + 6;
                     complete_ = true;
                     bchunked = false;
                     if(copyBody)
@@ -125,7 +121,6 @@ namespace rasp
             {
                 if(getHeader("content-length").empty())
                 {
-                    cout<< "the head file hav no content length"<<endl;
                     contentLen_ = 0;
                     complete_ = true;
                     scannedLen_ = mscanned;
@@ -209,8 +204,7 @@ namespace rasp
         return buf.size() - osz;
     }
     HttpMsg::Result HttpRequest::tryDecode(Slice buf, bool copyBody)//for server
-    {//cout << "---------start--------" << "\r\n" <<endl;
-        //cout << buf.toString() <<endl;
+    {
         size_t i = 0;
         Slice ln1;
         Result r = tryDecode_(buf, copyBody, &ln1);//get head and first line
@@ -218,12 +212,8 @@ namespace rasp
         {
             return NotCompelete;
         }
-       // cout << "xxxxxxxxx"<<buf.toString() <<endl;
         if(ln1.size())
         {
-            
-            //cout << ln1.toString() <<endl;
-            
             method = ln1.eatWord();//get method: GET/POST/XXX
             query_uri = ln1.eatWord(); //get query_uri: /
             version = ln1.eatWord(); //get version: HTTP1.1
@@ -232,7 +222,6 @@ namespace rasp
                 error("query uri '%.*s' should begin with /", (int) query_uri.size(), query_uri.data());
                 return Error;
             }
-            //cout <<"query"<<query_uri<<endl;
             for(i = 0; i <= query_uri.size(); i++)
             {
                 if(query_uri[i] == '?')// find "?" in query_uri::::Ex: http://www.it315.org/counter.jsp?name=zhangsan&password=123
@@ -276,12 +265,6 @@ namespace rasp
                 }
             }
         }
-        //cout<<"uri:" << uri <<endl;
-        //cout << "-------end----------" << "\r\n" <<endl;
-        /*for(auto& t : args)
-        {
-            cout <<t.first << "=" <<t.second <<endl;
-        }*/
         return r;
     }
     int HttpResponse::encode(Buffer& buf) //for server
@@ -347,6 +330,7 @@ namespace rasp
         {
             getRequest().clear();
         }
+        tcp->getInput().clear();
     }
     //register callback
     // tcp->handleRead() -> onRead() -> http(con)->handleRead-> (param HttpCallBack function cb)

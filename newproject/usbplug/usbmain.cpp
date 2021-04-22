@@ -1,4 +1,5 @@
 #include <iostream>
+#include <regex>
 #include "config.h"
 #include "common.h"
 #include "util.h"
@@ -10,7 +11,9 @@
 #include "status.h"
 #include "file.h"
 #include "http.h"
-#include "json.hpp"
+#include "json.cpp"
+
+using json = nlohmann::json;
 using namespace std;
 using namespace rasp;
 
@@ -20,17 +23,30 @@ int main(int argc, char** argv)
     vector<string> webfile;
     MultiBase base(10);
     //EventBase base;
-    TcpServerPtr tcpserver = TcpServer::startServer(base.allocBase(), "192.168.31.162", 4746);
-    tcpserver->onConnState([](const TcpConnPtr& con) {
-        if (con->getState() == TcpConn::Connected)
-            info("a tcp clinet connect!!!!!");
-        });
-
+    TcpConnPtr master = TcpConn::createConnection(base.allocBase(), "www.bigiot.net", 8181);
+    json mj, login;
+    mj["M"] = "b";
+    login["M"] = "checkin";
+    login["ID"] = "8350";
+    login["K"] = "aca4b50ba";
+    master->onState([&login](const TcpConnPtr& con){
+        if(con->getState() == TcpConn::Connected)
+        {
+            cout << "login.dump" <<login.dump(0) <<endl;
+            con->send((login.dump(0)+"\n").data(), login.dump(0).size() + 1);
+        }
+    });
     HttpServer hserver(base.allocBase());
     int r = hserver.bind("192.168.31.162",8081);
     exitif(r, "bind failed");
     hserver.onRequest("GET", "/", [&](const HttpConnPtr& con)
     {
+        con.getResponse().setStatus(200, "OK");
+        con.sendFile("../web/login.html");
+    });
+    hserver.onRequest("POST", "/home.html", [&](const HttpConnPtr& con)
+    {
+
         con.getResponse().setStatus(200, "OK");
         con.sendFile("../web/login.html");
     });
@@ -57,14 +73,14 @@ int main(int argc, char** argv)
         if(con->getState() == TcpConn::Connected)
         {
             clientNum++;
-            //info("a clinet connect to server!, the total connectClinet is %d", (const int)clientNum);
+            info("a clinet connect to server!, the total connectClinet is %d", (const int)clientNum);
             //con->addIdleCB(20, [](const TcpConnPtr& c){c->close();});
             //info("total client is %d",hserver.getBase()->);
         }
         else if (con->getState() == TcpConn::Closed)
         {
             clientNum --;
-            //info("a clinet DIS connect to server!, the total connectClinet is %d", (const int)clientNum);
+            info("a clinet DIS connect to server!, the total connectClinet is %d", (const int)clientNum);
         }
     });
     base.loop();

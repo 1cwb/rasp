@@ -15,16 +15,18 @@ using namespace rasp;
 int main(int argc, char** argv)
 {   
     EventBase base;
-    TcpConnPtr con = TcpConn::createConnection(&base, "www.360.cn",80);
+    TcpConnPtr con = TcpConn::createConnection(&base, "m2.5y1rsxmzh.club",80);
     cout << "IP is" <<con->peer_.toString() << endl;
     //TcpConnPtr con = TcpConn::createConnection(&base, "www.baidu.com", 80);
     HttpConnPtr http(con);
+    http->setReconnectInterval(20000);
     http->onState([&http](const TcpConnPtr& con){
         if(con->getState() == TcpConn::Connected)
         {
+            cout << "connected now ------"<<endl;
             http.getRequest().getMethod() = "GET";
-            http.getRequest().getQureUri() = "/";
-            http.getRequest().getHeaders()["Host"] = "www.360.cn";
+            http.getRequest().getQureUri() = "/pw/";
+            http.getRequest().getHeaders()["Host"] = "m2.5y1rsxmzh.club";
             http.getRequest().getHeaders()["Accept"] = "*/*";
             http.getRequest().getHeaders()["Accept-Language"] = "cn";  
             http.getRequest().getHeaders()["User-Agent"] = "Mozilla/5.0";  
@@ -43,17 +45,33 @@ int main(int argc, char** argv)
         cout << m.getResponse().getBody().toString() << endl;
         cout << "Response:=============end====================" << endl;;
         #endif
-        base.runAfter(5000, [&](){
+        base.runAfter(5, [&](){
             http.getRequest().getMethod() = "GET";
-            http.getRequest().getQureUri() = "/";
-            http.getRequest().getHeaders()["Host"] = "www.360.cn";
+            http.getRequest().getQureUri() = "/pw/";
+            http.getRequest().getHeaders()["Host"] = "m2.5y1rsxmzh.club";
             http.getRequest().getHeaders()["Accept"] = "*/*";
             http.getRequest().getHeaders()["Accept-Language"] = "cn";  
             http.getRequest().getHeaders()["User-Agent"] = "Mozilla/5.0";  
             http.getRequest().getHeaders()["Cache-control"] = "no-cache";  
-            http.sendRequest();
+            http.sendRequest();  
         });
         cout << "Response:===========resent=================" << endl;;
+    });
+    http->addIdleCB(10, [&](const TcpConnPtr& con){
+        if(con->getState() != TcpConn::Connected)
+        {
+            cout << "now connect is not enabled!!!!, wait for may second"<<endl;
+            return;
+        }
+        cout << "call cb is runll->>>>"<<endl;
+         http.getRequest().getMethod() = "GET";
+        http.getRequest().getQureUri() = "/pw/";
+        http.getRequest().getHeaders()["Host"] = "m2.5y1rsxmzh.club";
+        http.getRequest().getHeaders()["Accept"] = "*/*";
+        http.getRequest().getHeaders()["Accept-Language"] = "cn";  
+        http.getRequest().getHeaders()["User-Agent"] = "Mozilla/5.0";  
+        http.getRequest().getHeaders()["Cache-control"] = "no-cache";  
+        http.sendRequest();
     });
     base.loop();
     return 0;
