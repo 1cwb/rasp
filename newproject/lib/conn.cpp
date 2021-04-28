@@ -140,12 +140,12 @@ namespace rasp
         }
     }
     ssize_t TcpConn::isend(const char* buf, ssize_t len)
-    {info("call send now");
+    {
         ssize_t sended = 0;
         while (len > sended)
         {
             ssize_t wd = writeImp(channel_->fd(), buf + sended, len - sended);
-            info("channel %lld fd %d write %ld bytes", (long long)channel_->id(), channel_->fd(), wd);
+            trace("channel %lld fd %d write %ld bytes", (long long)channel_->id(), channel_->fd(), wd);
             if(wd > 0)
             {
                 sended += wd;

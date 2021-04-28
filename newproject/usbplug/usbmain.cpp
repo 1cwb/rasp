@@ -24,18 +24,27 @@ int main(int argc, char** argv)
     MultiBase base(10);
     //EventBase base;
     TcpConnPtr master = TcpConn::createConnection(base.allocBase(), "www.bigiot.net", 8181);
-    json mj, login;
-    mj["M"] = "b";
-    login["M"] = "checkin";
-    login["ID"] = "8350";
-    login["K"] = "aca4b50ba";
+    string id = "8350";
+    json login = "{\"M\":\"checkin\",\"ID\":\"8350\",\"K\":\"aca4b50ba\"}\n"_json;
     master->onState([&login](const TcpConnPtr& con){
         if(con->getState() == TcpConn::Connected)
         {
-            cout << "login.dump" <<login.dump(0) <<endl;
-            con->send((login.dump(0)+"\n").data(), login.dump(0).size() + 1);
+            //cout << "login.dump" <<login.dump(0) <<endl;
+            //con->send((login.dump(0)).data(), login.dump(0).size());
+            string logxx = "{\"M\":\"checkin\",\"ID\":\"8350\",\"K\":\"aca4b50ba\"}\n";
+            con->send(logxx.data(), logxx.size());
         }
     });
+    master->onRead([](const TcpConnPtr& con){
+        cout << con->getInput().data() <<endl;
+        
+        con->getInput().clear();
+        string say = "{\"M\":\"say\",\"ID\":\"U5509\",\"C\":\"sa bi\",\"SIGN\":\"sa diao\"}\n";
+        con->send(say.data(), say.size());
+    });
+    master->getBase()->runAfter(45000,[&](){
+        master->send("{\"M\":\"b\"}\n");
+    },45000);
     HttpServer hserver(base.allocBase());
     int r = hserver.bind("192.168.31.162",8081);
     exitif(r, "bind failed");

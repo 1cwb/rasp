@@ -1,8 +1,9 @@
 #include <iostream>
+#include <chrono>
 #include "config.h"
 #include "common.h"
 #include "util.h"
-#include <chrono>
+#include "file.h"
 #include "mlog.h"
 #include "rasp_impl.h"
 #include "event_base.h"
@@ -11,19 +12,26 @@
 using namespace std;
 using namespace rasp;
 #define DBG_CLIENT 1
-//https://news.google.com/topstories?hl=zh-TW&gl=TW&ceid=TW:zh-Hant
+
+enum ParseState
+{
+    E_HOMEPAGE,
+    E_NORMALPAGE
+}; 
+using E_PARSE_STATE = ParseState;
+
 int main(int argc, char** argv)
 {   
     EventBase base;
+    E_PARSE_STATE state = E_HOMEPAGE;
     TcpConnPtr con = TcpConn::createConnection(&base, "m2.5y1rsxmzh.club",80);
     cout << "IP is" <<con->peer_.toString() << endl;
-    //TcpConnPtr con = TcpConn::createConnection(&base, "www.baidu.com", 80);
     HttpConnPtr http(con);
     http->setReconnectInterval(20000);
     http->onState([&http](const TcpConnPtr& con){
         if(con->getState() == TcpConn::Connected)
         {
-            cout << "connected now ------"<<endl;
+            cout << "connect to " + con->destHost_ + " sucessful"<<endl;
             http.getRequest().getMethod() = "GET";
             http.getRequest().getQureUri() = "/pw/";
             http.getRequest().getHeaders()["Host"] = "m2.5y1rsxmzh.club";
@@ -45,16 +53,23 @@ int main(int argc, char** argv)
         cout << m.getResponse().getBody().toString() << endl;
         cout << "Response:=============end====================" << endl;;
         #endif
-        base.runAfter(5, [&](){
+        if(state == E_HOMEPAGE)
+        {
+            state = E_HOMEPAGE;
+            File::writeContent("download.html",m.getResponse().getBody());
+        }
+
+        
+        
+        /*base.runAfter(5, [&](){
             http.getRequest().getMethod() = "GET";
             http.getRequest().getQureUri() = "/pw/";
             http.getRequest().getHeaders()["Host"] = "m2.5y1rsxmzh.club";
-            http.getRequest().getHeaders()["Accept"] = "*/*";
             http.getRequest().getHeaders()["Accept-Language"] = "cn";  
             http.getRequest().getHeaders()["User-Agent"] = "Mozilla/5.0";  
             http.getRequest().getHeaders()["Cache-control"] = "no-cache";  
             http.sendRequest();  
-        });
+        });*/
         cout << "Response:===========resent=================" << endl;;
     });
     http->addIdleCB(10, [&](const TcpConnPtr& con){

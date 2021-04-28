@@ -53,7 +53,7 @@ namespace rasp
         void send(const char* s){send(s, strlen(s));}
 
         //call back when get data
-        void onRead(const TcpCallBack& cb) {assert(!readcb_); readcb_ = cb;}
+        void onRead(const TcpCallBack& cb) {readcb_ = cb;}
         // tcp buffer can be write call back
         void onWritable(const TcpCallBack& cb) {writablecb_ = cb;}
         //tcp state change call
