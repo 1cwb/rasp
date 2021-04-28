@@ -39,9 +39,9 @@ int main(int argc, char** argv)
     
     
     bigiot.onRead([](BigIot& iot){
-        cout << iot.getTcpConnPtr()->getInput().data() <<endl;
-        
-        iot.getTcpConnPtr()->getInput().clear();
+        //cout << "metadata:"<<iot.getTcpConnPtr()->getInput().data() <<endl;
+        //cout <<"================="<<endl;
+        //iot.getTcpConnPtr()->getInput().clear();
         //string say = "{\"M\":\"say\",\"ID\":\"U5509\",\"C\":\"sa bi\",\"SIGN\":\"sa diao\"}\n";
         //iot.getTcpConnPtr()->send(say.data(), say.size());
         iot.sendSay("U5509", "fuck you every day", "fuck");

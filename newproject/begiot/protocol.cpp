@@ -160,13 +160,13 @@ namespace rasp
         string value;
         size_t posb = 0;
         size_t pose = 0;
-        posb = buff.find(key);
+        posb = buff.find_first_of(key);
         if(posb == buff.npos)
         {
             return " ";
         }
         posb += key.size();
-        pose = buff.find(BIGIOT_END,posb);
+        pose = buff.find_first_of(BIGIOT_END,posb);
         if(pose == buff.npos)
         {
             return " ";
@@ -179,12 +179,11 @@ namespace rasp
         std::string method;
         data.assign(buff.data());
         method = getValueFromJson(data, BIGIOT_METHOD);
-        cout << method <<endl;
         if(method == "checkinok")
         {
             deviceName_ = getValueFromJson(data, BIGIOT_DEVICENAME);
             bDeviceCheckin_ = true;
-            cout <<deviceName_<<endl;
+            //cout <<deviceName_<<endl;
             emthod = E_M_CHECKINOK;
         }
         else if(method == "ping")
@@ -202,7 +201,7 @@ namespace rasp
             clientCId_ = getValueFromJson(data, BIGIOT_CLIENTID);
             clientName_ = getValueFromJson(data, BIGIOT_CLIENTENAME);
             bClientLogin_ = true;
-            cout << clientCId_ <<": "<<clientName_<< "true"<<endl;
+            //cout << clientCId_ <<": "<<clientName_<< "true"<<endl;
             emthod = E_M_LOGIN;
         }
         else if(method == "logout")
@@ -210,17 +209,16 @@ namespace rasp
             clientCId_ = getValueFromJson(data, BIGIOT_CLIENTID);
             clientName_ = getValueFromJson(data, BIGIOT_CLIENTENAME);
             bClientLogin_ = false;
-            cout << clientCId_ <<": "<<clientName_<< "false"<<endl;
+            //cout << clientCId_ <<": "<<clientName_<< "false"<<endl;
             emthod = E_M_LOGOUT;
         }
         else if(method == "say")
-        {cout <<data<<endl;
+        {
             clientCId_ = getValueFromJson(data, BIGIOT_CLIENTID);
             clientName_ = getValueFromJson(data, BIGIOT_CLIENTENAME);
             saycontent = getValueFromJson(data, BIGIOT_CONTENT);
             saysign = getValueFromJson(data, BIGIOT_SIGN);
-            cout <<saycontent <<endl;
-            cout <<saysign <<endl;
+            //cout << "1212--"<<saycontent <<endl;
             emthod = E_M_SAY;
         }
         else if(method == "isOL")
@@ -240,7 +238,7 @@ namespace rasp
         {
             serverTime = getValueFromJson(data, BIGIOT_TIME);
             emthod = E_M_TIME;
-            cout <<serverTime <<endl;
+            //cout<<"tonyxx" <<serverTime <<endl;
         }
         else
         {
