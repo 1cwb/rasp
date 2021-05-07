@@ -224,6 +224,16 @@ namespace rasp
         else if(method == "isOL")
         {
             emthod = E_M_ISOL;
+            clientCId_ = getValueFromJson(data, BIGIOT_R);
+            string bonline = getValueFromJson(data, clientCId_ + "\":\"");
+            if(bonline == "0")
+            {
+                bClientLogin_ = false;
+            }
+            else if(bonline == "1")
+            {
+                bClientLogin_ = true;
+            }
         }
         else if(method == "connected")
         {

@@ -18,6 +18,7 @@
 #define BIGIOT_CONTENT        "\"C\":\""
 #define BIGIOT_SIGN           "\"SIGN\":\""
 #define BIGIOT_TIME           "\"T\":\""
+#define BIGIOT_R              "\"R\":{\""
 #define BIGIOT_END            "\""
 
 namespace rasp
@@ -51,21 +52,18 @@ namespace rasp
         };
         operator TcpConnPtr() {return con_;}
         operator TcpConn*() {return con_.get();}
+        BigIot():bDeviceCheckin_(false), bClientLogin_(false), emthod(E_M_OTHERS){}
         BigIot(TcpConnPtr con):con_(con),bDeviceCheckin_(false), bClientLogin_(false), emthod(E_M_OTHERS){}
         ~BigIot(){}
 
-        /*void connect(const std::string& host = BIG_IOT_WEB, const short port = PORT)
-        {
-            con_ = TcpConn::createConnection(base_, host, port);
-        }*/
-        void onRead(const IotCallBack& cb)
+        void onRead(const IotCallBack& cb) 
         {
             con_->onRead([cb](const TcpConnPtr& con){
                 BigIot bigiot(con);
                 bigiot.onRead_(cb);
             });
         }
-        void onState(const IotCallBack& cb)
+        void onState(const IotCallBack& cb) 
         {
             con_->onState([cb](const TcpConnPtr& con){
                 BigIot bigiot(con);
@@ -85,7 +83,7 @@ namespace rasp
         void sendHeartBeatPackage();
         void sendCheckin(const std::string& deviceId, const std::string& apiKey);
         void sendRealTimeData(const std::map<std::string, std::string>& data);
-        void sendSay(const std::string& id, const std::string& content, const std::string& label);
+        void sendSay(const std::string& id, const std::string& content, const std::string& label = "");
         void sendCheckOnLine(const std::vector<std::string>& id);
         void sendCheckMyself();
         void sendWarning(const std::string& id, const std::string& content);
