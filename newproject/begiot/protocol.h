@@ -5,6 +5,7 @@
 #include "event_base.h"
 #include "conn.h"
 #include "mlog.h"
+#include "include/json.h"
 
 #define BIG_IOT_WEB "www.bigiot.net"
 #define PORT 8181
@@ -17,12 +18,13 @@
 #define BIGIOT_CONTENT        "\"C\":\""
 #define BIGIOT_SIGN           "\"SIGN\":\""
 #define BIGIOT_TIME           "\"T\":\""
-#define BIGIOT_END            "\","
+#define BIGIOT_END            "\""
 
 namespace rasp
 {
     class BigIot;
-    typedef std::function<void(BigIot& iot)> IotCallBack;
+    using IotCallBack = std::function<void(BigIot& iot)>;
+    
     class BigIot
     {
         public:
@@ -48,24 +50,37 @@ namespace rasp
             Y_M_D_H_I_S
         };
         operator TcpConnPtr() {return con_;}
-        BigIot(EventBase* base):base_(base),bDeviceCheckin_(false), bClientLogin_(false), emthod(E_M_OTHERS){}
+        operator TcpConn*() {return con_.get();}
+        BigIot(TcpConnPtr con):con_(con),bDeviceCheckin_(false), bClientLogin_(false), emthod(E_M_OTHERS){}
         ~BigIot(){}
 
-        void connect(const std::string& host = BIG_IOT_WEB, const short port = PORT)
+        /*void connect(const std::string& host = BIG_IOT_WEB, const short port = PORT)
         {
             con_ = TcpConn::createConnection(base_, host, port);
-        }
+        }*/
         void onRead(const IotCallBack& cb)
         {
-            con_->onRead([cb,this](const TcpConnPtr& con){
-                this->onRead_(cb);
+            con_->onRead([cb](const TcpConnPtr& con){
+                BigIot bigiot(con);
+                bigiot.onRead_(cb);
             });
         }
         void onState(const IotCallBack& cb)
         {
-            con_->onState([cb,this](const TcpConnPtr& con){
-                this->onState_(cb);
+            con_->onState([cb](const TcpConnPtr& con){
+                BigIot bigiot(con);
+                bigiot.onState_(cb);
             });
+        }
+        void onRead_(const IotCallBack& cb)
+        {   
+            parseData(con_->getInput());
+            cb(*this);
+            con_->getInput().clear();
+        }
+        void onState_(const IotCallBack& cb)
+        {
+            cb(*this);
         }
         void sendHeartBeatPackage();
         void sendCheckin(const std::string& deviceId, const std::string& apiKey);
@@ -86,23 +101,17 @@ namespace rasp
         std::string getClientName()const{return clientName_;}
         std::string getClientUId()const{return clinetUId_;}
         std::string getClientCId()const{return clientCId_;}
+        std::string getServerTime()const{return serverTime;}
+        std::string getSayContent()const{return saycontent;}
 
         TcpConnPtr& getTcpConnPtr() {return con_;}
+        Method getMethod() {return emthod;}
         private:
-        void onRead_(const IotCallBack& cb)
-        {   
-            parseData(con_->getInput());
-            cb(*this);
-            con_->getInput().clear();
-        }
-        void onState_(const IotCallBack& cb)
-        {
-            cb(*this);
-        }
+        
         void parseData(const Buffer& buff);
         std::string getValueFromJson(const std::string& buff, const std::string& key);
         TcpConnPtr con_;
-        EventBase* base_;
+        //EventBase* base_;
         bool bDeviceCheckin_;
         
         std::string deviceName_;
@@ -118,4 +127,5 @@ namespace rasp
         std::string serverTime;
         Method emthod;
     };
+    using E_METHOD = BigIot::Method;
 }

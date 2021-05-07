@@ -160,13 +160,13 @@ namespace rasp
         string value;
         size_t posb = 0;
         size_t pose = 0;
-        posb = buff.find_first_of(key);
+        posb = buff.find(key);
         if(posb == buff.npos)
         {
             return " ";
         }
         posb += key.size();
-        pose = buff.find_first_of(BIGIOT_END,posb);
+        pose = buff.find(BIGIOT_END,posb);
         if(pose == buff.npos)
         {
             return " ";
